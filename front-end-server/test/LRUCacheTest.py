@@ -2,7 +2,7 @@ import unittest
 import sys, os
 sys.path.append(os.path.abspath(os.path.join('..')))
 
-from LRUCache import LRUCache
+from cache.LRUCache import LRUCache
 
 
 class TestLRUCacheMethods(unittest.TestCase):
@@ -15,10 +15,18 @@ class TestLRUCacheMethods(unittest.TestCase):
 		c = LRUCache(5)
 		c.loadEntry('hello', 'world')
 		self.assertTrue(c.hasEntry('hello'))
-		
+
 	def testHasEntryWithLoadAndSizeZero(self):
 		c = LRUCache(0)
 		c.loadEntry('hello', 'world')
+		self.assertFalse(c.hasEntry('hello'))
+
+	def testHasEntryWithLoadAndSizeOne(self):
+		c = LRUCache(1)
+		c.loadEntry('hello', 'world')
+		self.assertTrue(c.hasEntry('hello'))
+		c.loadEntry('yellow', 'duck')
+		self.assertTrue(c.hasEntry('yellow'))
 		self.assertFalse(c.hasEntry('hello'))
 
 	def testEvictionWithoutLookup(self):

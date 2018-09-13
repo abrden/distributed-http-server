@@ -24,9 +24,10 @@ class DoublyLinkedList:
 	def remove(self, e):
 		if e.right is not None:
 			e.right.left = e.left
-		else: # The last is removed
+		else:  # The last is removed
 			self.last = self.last.left
-		e.left.right = e.right
+		if e.left is not None:
+			e.left.right = e.right
 
 	def getFirst(self):
 		return self.first
