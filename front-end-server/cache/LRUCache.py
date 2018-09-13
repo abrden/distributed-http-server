@@ -1,5 +1,6 @@
 from .DoublyLinkedList import DoublyLinkedList
 
+
 class LRUCacheEntry:
 	
 	def __init__(self, key, value):
@@ -7,6 +8,7 @@ class LRUCacheEntry:
 		self.value = value
 		self.left = None
 		self.right = None
+
 
 class LRUCache:
 

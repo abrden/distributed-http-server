@@ -8,11 +8,11 @@ class DoublyLinkedList:
 		e.right = self.first
 		e.left = None
 		
-		if self.first != None:
+		if self.first is not None:
 			self.first.left = e
 		self.first = e
 		
-		if self.last == None:
+		if self.last is None:
 			self.last = self.first
 	
 	def moveToFront(self, e):
@@ -22,7 +22,7 @@ class DoublyLinkedList:
 		self.addToFront(e)
 	
 	def remove(self, e):
-		if e.right != None:
+		if e.right is not None:
 			e.right.left = e.left
 		else: # The last is removed
 			self.last = self.last.left

@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join('..')))
 
 from LRUCache import LRUCache
 
+
 class TestLRUCacheMethods(unittest.TestCase):
 
 	def testHasEntryWithoutLoad(self):
@@ -44,6 +45,7 @@ class TestLRUCacheMethods(unittest.TestCase):
 		self.assertFalse(c.hasEntry('yellow'))
 		self.assertTrue(c.hasEntry('blue'))
 		self.assertTrue(c.hasEntry('brown'))
+
 
 if __name__ == '__main__':
 	unittest.main()

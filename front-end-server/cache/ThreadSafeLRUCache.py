@@ -2,6 +2,7 @@ from threading import Lock
 
 from .LRUCache import LRUCache
 
+
 class ThreadSafeLRUCache(LRUCache):
 	def __init__(self, size):
 		super(ThreadSafeLRUCache, self).__init__(size)
@@ -25,5 +26,5 @@ class ThreadSafeLRUCache(LRUCache):
 		
 	def deleteEntry(self, key, deleteFromLowerMemory):
 		self.mutex.acquire()
-		super(ThreadSafeLRUCache, self).deleteEntry(key, value, deleteFromLowerMemory)
+		super(ThreadSafeLRUCache, self).deleteEntry(key, deleteFromLowerMemory)
 		self.mutex.release()

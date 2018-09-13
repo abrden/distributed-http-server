@@ -8,6 +8,7 @@ from middleware import fetchFromServer, saveInServer
 
 cache = ThreadSafeLRUCache(int(sys.argv[1]))
 
+
 @app.route('/<origin>/<entity>/<id>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def hello_name(origin, entity, id):
 	path = '/' + origin + '/' + entity + '/' + id
@@ -35,5 +36,6 @@ def hello_name(origin, entity, id):
 		# TODO
 		return status.HTTP_501_NOT_IMPLEMENTED
 
+
 if __name__ == '__main__':
-    app.run(threaded=True, debug=True)
+	app.run(threaded=True, debug=True)
