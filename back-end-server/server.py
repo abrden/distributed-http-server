@@ -19,7 +19,7 @@ def fetch_file(origin, entity, id):
 		return jsonify(error="Resource '{}' not found.".format(path)), status.HTTP_404_NOT_FOUND
 	content = file.read()
 	file.close()
-	return content, status.HTTP_200_OK
+	return Response(content, status=status.HTTP_200_OK, mimetype='application/json')
 
 
 @app.route('/<origin>/<entity>/<id>', methods=['POST'])
@@ -27,10 +27,9 @@ def create_file(origin, entity, id):
 	path = './' + origin + '/' + entity + '/' + id
 	ensure_dir(path)
 	file = open(path, 'w+')
-	print(json.dumps(request.json))
 	file.write(json.dumps(request.json))
 	file.close()
-	return '', status.HTTP_201_CREATED
+	return Response(status=status.HTTP_201_CREATED)
 
 
 if __name__ == '__main__':
