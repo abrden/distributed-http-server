@@ -27,7 +27,7 @@ def hello_name(origin, entity, id):
 	elif request.method == 'POST':
 		be_response, be_status = saveInServer(origin, entity, id, json.dumps(request.json))
 		cache.loadEntry(path, json.dumps(request.json))
-		return be_response, be_status
+		return Response(be_response, status=be_status, mimetype='application/json')
 		
 	elif request.method == 'PUT':
 		# TODO
