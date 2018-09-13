@@ -33,4 +33,8 @@ def create_file(origin, entity, id):
 
 
 if __name__ == '__main__':
-	app.run(debug=True, port=int(sys.argv[1]))
+	app.run(
+		debug=True,
+		host='0.0.0.0' if len(sys.argv) < 2 else '127.0.0.1',
+		port=5000 if len(sys.argv) < 2 else int(sys.argv[1])
+	)

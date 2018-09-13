@@ -38,4 +38,8 @@ def hello_name(origin, entity, id):
 
 
 if __name__ == '__main__':
-	app.run(threaded=True, debug=True)
+	app.run(
+		debug=True,
+		threaded=True,
+		host='0.0.0.0' if len(sys.argv) < 2 else '127.0.0.1'
+	)
