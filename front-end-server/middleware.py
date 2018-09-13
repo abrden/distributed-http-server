@@ -1,4 +1,5 @@
 import requests
+from flask import json
 
 SERVERS = 3
 
@@ -23,5 +24,5 @@ def fetchFromServer(origin, entity, id):
 def saveInServer(origin, entity, id, data):
 	be_num = serverNum(origin)
 	url = baseurls[0] + '/' + origin + '/' + entity + '/' + id
-	response = requests.post(url, data=data)
+	response = requests.post(url, json=json.loads(data))
 	return response.text, response.status_code

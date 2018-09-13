@@ -1,5 +1,5 @@
 import sys
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response, jsonify, json
 from flask_api import status
 app = Flask(__name__)
 
@@ -20,8 +20,8 @@ def fetch_file(origin, entity, id):
 def create_file(origin, entity, id):
 	path = './' + origin + '/' + entity + '/' + id
 	file = open(path, 'w+')
-	print(str(request.data))
-	file.write(str(request.data))
+	print(json.dumps(request.json))
+	file.write(json.dumps(request.json))
 	file.close()
 	return '', status.HTTP_201_CREATED
 

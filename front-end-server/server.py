@@ -1,5 +1,5 @@
 import sys
-from flask import Flask, request, Response
+from flask import Flask, request, Response, json
 from flask_api import status
 app = Flask(__name__)
 
@@ -25,9 +25,9 @@ def hello_name(origin, entity, id):
 			return Response(be_response, status=status.HTTP_200_OK, mimetype='application/json')
 			
 	elif request.method == 'POST':
-		be_response, be_status = saveInServer(origin, entity, id, request.data)
-		cache.loadEntry(path, request.data)
-		return '', status.HTTP_201_CREATED
+		be_response, be_status = saveInServer(origin, entity, id, json.dumps(request.json))
+		cache.loadEntry(path, json.dumps(request.json))
+		return be_response, be_status
 		
 	elif request.method == 'PUT':
 		# TODO
