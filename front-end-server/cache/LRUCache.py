@@ -19,7 +19,7 @@ class LRUCache:
 
 	def hasEntry(self, key):
 		return key in self.dict
-		
+
 	def getEntry(self, key):
 		e = self.dict[key]
 		self.list.moveToFront(e)
@@ -48,3 +48,6 @@ class LRUCache:
 			e = self.dict[key]
 			del self.dict[key]
 			self.list.remove(e)
+
+	def printLRU(self):
+		self.list.print()

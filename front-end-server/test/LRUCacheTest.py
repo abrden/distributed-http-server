@@ -28,6 +28,15 @@ class TestLRUCacheMethods(unittest.TestCase):
 		c.loadEntry('yellow', 'duck')
 		self.assertTrue(c.hasEntry('yellow'))
 		self.assertFalse(c.hasEntry('hello'))
+		c.loadEntry('blue', 'sky')
+		self.assertTrue(c.hasEntry('blue'))
+		self.assertFalse(c.hasEntry('yellow'))
+		self.assertFalse(c.hasEntry('hello'))
+		c.loadEntry('brown', 'bear')
+		self.assertTrue(c.hasEntry('brown'))
+		self.assertFalse(c.hasEntry('blue'))
+		self.assertFalse(c.hasEntry('yellow'))
+		self.assertFalse(c.hasEntry('hello'))
 
 	def testEvictionWithoutLookup(self):
 		c = LRUCache(3)

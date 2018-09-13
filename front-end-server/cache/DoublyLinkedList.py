@@ -28,6 +28,8 @@ class DoublyLinkedList:
 			self.last = self.last.left
 		if e.left is not None:
 			e.left.right = e.right
+		else:  # The first is removed
+			self.first = self.first.right
 
 	def getFirst(self):
 		return self.first
@@ -37,3 +39,15 @@ class DoublyLinkedList:
 
 	def removeLast(self):
 		self.remove(self.last)
+
+	def print(self):
+		print('From left to right')
+		c = self.first
+		while c is not None:
+			print(c.key)
+			c = c.right
+		print('From right to left')
+		c = self.last
+		while c is not None:
+			print(c.key)
+			c = c.left
