@@ -13,4 +13,4 @@ COPY . /be
 
 ENTRYPOINT [ "python3" ]
 
-CMD [ "server.py" ]
+CMD [ "be-server.py" ]
