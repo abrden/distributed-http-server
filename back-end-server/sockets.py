@@ -7,14 +7,15 @@ class Socket:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((host, port))
         self.s.listen()
-        self.client_conn = None
 
     def accept_client(self):
         return self.s.accept()
-        #return ClientSocket(conn), addr
+
+    def shutdown(self):
+        return self.s.shutdown(socket.SHUT_RDWR)
 
     def close(self):
-        self.s.close()
+        return self.s.close()
 
 
 class ClientSocket:
@@ -26,7 +27,7 @@ class ClientSocket:
         return self.conn.recv(bytes)
 
     def send(self, data):
-        self.conn.sendall(data)
+        return self.conn.sendall(data)
 
     def close(self):
-        self.conn.close()
+        return self.conn.close()

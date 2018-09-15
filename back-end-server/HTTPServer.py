@@ -1,37 +1,41 @@
-import multiprocessing
+import threading
 import time
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 from sockets import Socket, ClientSocket
 
 
-def handle_conn(conn, address):
-    import logging
+def handle_client_connection(conn, address):
     logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("Process-%r" % (address,))
+    logger = logging.getLogger("Worker-%r" % (address,))
+
     try:
+        conn = ClientSocket(conn)
+
         logger.debug("Connected %r at %r", conn, address)
-        client_socket = ClientSocket(conn)
-        while True:
-            data = client_socket.receive(1024)
-            if data == "":
-                logger.debug("Socket closed remotely")
-                break
-            logger.debug("Received data %r", data)
-            #
-            string = bytes.decode(data)
-            request_method = string.split(' ')[0]
-            print("Method: ", request_method)
-            print("Request body: ", string)
-            response = HTTPResponseMaker.response(200)
-            print("Response body: ", response)
-            #
-            client_socket.send(response.encode())
-            logger.debug("Sent data %r", response.encode())
+
+        data = conn.receive(1024)  # receive data from client
+        logger.debug("Received data %r", data)
+
+        string = bytes.decode(data)  # decode it to string
+
+        request_method = string.split(' ')[0]
+
+        response_headers = HTTPResponseMaker.response(404)
+        response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
+
+        server_response = response_headers.encode()  # return headers for GET and HEAD
+        server_response += response_content  # return additional conten for GET only
+
+        conn.send(server_response)
+        logger.debug("Sent data %r", server_response)
     except:
         logger.exception("Problem handling request")
     finally:
-        logger.debug("Closing client socket")
-        client_socket.close()
+        logger.debug("Closing connection with client")
+        conn.close()
 
 
 class HTTPResponseMaker:
@@ -39,19 +43,17 @@ class HTTPResponseMaker:
     @staticmethod
     def response(code):
         h = ''
-        if code == 200:
-            h = 'HTTP/1.1 200 OK\n'
-        elif code == 404:
-            h = 'HTTP/1.1 404 Not Found\n'
-        elif code == 501:
-            h = 'HTTP/1.1 501 Not Implemented\n'
+        if (code == 200):
+            h = 'HTTP/1.1 200 OK\r\n'
+        elif (code == 404):
+            h = 'HTTP/1.1 404 Not Found\r\n'
 
-        # write further headers
+        # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
-
-        h += 'Date: ' + current_date + '\n'
-        h += 'Server: BE-HTTP-Server\n'
-        h += 'Connection: close\n\n'  # signal that the connection wil be closed after completing the request
+        h += 'Date: ' + current_date + '\r\n'
+        h += 'Server: BE-HTTP-Server\r\n'
+        h += 'Content-Type: application/json\r\n'
+        h += 'Connection: close\r\n\r\n'  # signal that the conection wil be closed after complting the request
 
         return h
 
@@ -59,24 +61,22 @@ class HTTPResponseMaker:
 class HTTPServer:
 
     def __init__(self, host, port):
-        import logging
-        self.logger = logging.getLogger("HTTPServer")
-        self.host = host
-        self.port = port
-        self.socket = None
+        self.logger = logging.getLogger("BEHTTPServer")
+        self.socket = Socket(host, port)
 
-    def start(self):
-        self.logger.debug("Listening")
-        self.socket = Socket(self.host, self.port)
-
+    def wait_for_connections(self):
         while True:
-            conn, address = self.socket.accept_client()
+            self.logger.debug("Awaiting new connection")
+            try:
+                conn, addr = self.socket.accept_client()
+            except OSError:  # SIGINT received
+                return
             self.logger.debug("Connection accepted")
-            process = multiprocessing.Process(target=handle_conn, args=(conn, address))
-            process.daemon = True
-            process.start()
-            self.logger.debug("Started process %r", process)
+            worker = threading.Thread(target=handle_client_connection, args=(conn, addr))
+            worker.setDaemon(True)
+            worker.start()
+            self.logger.debug("Started worker thread")
 
-    def end(self):
+    def shutdown(self):
         self.logger.debug("Closing socket")
-        self.socket.close()
+        self.socket.shutdown()
