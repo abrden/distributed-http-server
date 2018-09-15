@@ -3,6 +3,8 @@ import signal
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
+import os
+sys.path.append(os.path.abspath(os.path.join('..', 'http-server')))
 from HTTPServer import HTTPServer, HTTPResponseMaker
 from sockets import ClientSocket
 

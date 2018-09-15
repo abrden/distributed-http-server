@@ -12,9 +12,9 @@ class HTTPResponseMaker:
     @staticmethod
     def response(code):
         h = ''
-        if (code == 200):
+        if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
-        elif (code == 404):
+        elif code == 404:
             h = 'HTTP/1.1 404 Not Found\r\n'
 
         # Optional headers
@@ -56,5 +56,5 @@ class HTTPServer:
         for thread in threading.enumerate():
             if thread is main_thread:
                 continue
-            logger.debug('Joining %s', thread.getName())
+            self.logger.debug('Joining %s', thread.getName())
             thread.join()
