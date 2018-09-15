@@ -4,38 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from sockets import Socket, ClientSocket
-
-
-def handle_client_connection(conn, address):
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("Worker-%r" % (address,))
-
-    try:
-        conn = ClientSocket(conn)
-
-        logger.debug("Connected %r at %r", conn, address)
-
-        data = conn.receive(1024)  # receive data from client
-        logger.debug("Received data %r", data)
-
-        string = bytes.decode(data)  # decode it to string
-
-        request_method = string.split(' ')[0]
-
-        response_headers = HTTPResponseMaker.response(404)
-        response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
-
-        server_response = response_headers.encode()  # return headers for GET and HEAD
-        server_response += response_content  # return additional conten for GET only
-
-        conn.send(server_response)
-        logger.debug("Sent data %r", server_response)
-    except:
-        logger.exception("Problem handling request")
-    finally:
-        logger.debug("Closing connection with client")
-        conn.close()
+from sockets import Socket
 
 
 class HTTPResponseMaker:
@@ -53,16 +22,17 @@ class HTTPResponseMaker:
         h += 'Date: ' + current_date + '\r\n'
         h += 'Server: BE-HTTP-Server\r\n'
         h += 'Content-Type: application/json\r\n'
-        h += 'Connection: close\r\n\r\n'  # signal that the conection wil be closed after complting the request
+        h += 'Connection: close\r\n\r\n'
 
         return h
 
 
 class HTTPServer:
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, conn_handler):
         self.logger = logging.getLogger("BEHTTPServer")
         self.socket = Socket(host, port)
+        self.conn_handler = conn_handler
 
     def wait_for_connections(self):
         while True:
@@ -72,7 +42,7 @@ class HTTPServer:
             except OSError:  # SIGINT received
                 return
             self.logger.debug("Connection accepted")
-            worker = threading.Thread(target=handle_client_connection, args=(conn, addr))
+            worker = threading.Thread(target=self.conn_handler, args=(conn, addr))
             worker.setDaemon(True)
             worker.start()
             self.logger.debug("Started worker thread")
@@ -80,3 +50,11 @@ class HTTPServer:
     def shutdown(self):
         self.logger.debug("Closing socket")
         self.socket.shutdown()
+        self.socket.close()
+
+        main_thread = threading.current_thread()
+        for thread in threading.enumerate():
+            if thread is main_thread:
+                continue
+            logger.debug('Joining %s', thread.getName())
+            thread.join()
