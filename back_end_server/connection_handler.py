@@ -9,6 +9,11 @@ from .file_handler import FileHandler
 
 def fulfill_request(whoami, cache, verb, path, body=None):
     logger = logging.getLogger(whoami)
+
+    if path == "/":
+        logger.debug("Empty path: %r", path)
+        return HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
+
     if verb == 'GET':
         if cache.hasEntry(path):
             logger.debug("Cache HIT: %r", path)
@@ -23,7 +28,7 @@ def fulfill_request(whoami, cache, verb, path, body=None):
 
             except IOError:
                 logger.debug("File not found: %r", path)
-                return HTTPResponseEncoder.encode(404)
+                return HTTPResponseEncoder.encode(404, 'File not found\n')
 
             cache.loadEntry(path, response_content)
             return HTTPResponseEncoder.encode(200, response_content)
