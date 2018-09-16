@@ -4,7 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from sockets import Socket
+from .sockets import Socket
 
 
 class HTTPResponseMaker:

@@ -2,7 +2,7 @@
 
 ## Dockerize Back End
 ```
-sudo docker build -t distribute-http-server-be:latest .
+sudo docker build -f back-end-server/Dockerfile -t distribute-http-server-be:latest .
 sudo docker run -p 5001:5000 distribute-http-server-be
 ```
 

@@ -1,10 +1,8 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-import sys, os
-sys.path.append(os.path.abspath(os.path.join('..', 'http-server')))
-from httpserver import HTTPResponseMaker
-from sockets import ClientSocket
+from http_server.httpserver import HTTPResponseMaker
+from http_server.sockets import ClientSocket
 
 
 def handle_client_connection(conn, address):

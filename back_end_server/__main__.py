@@ -1,11 +1,10 @@
-import sys, os
+import sys
 import signal
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-sys.path.append(os.path.abspath(os.path.join('..', 'http-server')))
-from httpserver import HTTPServer
-from connection_handler import handle_client_connection
+from http_server.httpserver import HTTPServer
+from .connection_handler import handle_client_connection
 
 
 def main():
@@ -22,5 +21,4 @@ def main():
     logger.info("Done")
 
 
-if __name__ == "__main__":
-    main()
+main()
