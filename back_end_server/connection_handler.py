@@ -4,6 +4,7 @@ logging.basicConfig(level=logging.DEBUG)
 from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
 from http_server.sockets import ClientSocket
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
+from .file_handler import FileHandler
 
 
 def fulfill_request(whoami, cache, verb, path, body=None):
@@ -16,8 +17,8 @@ def fulfill_request(whoami, cache, verb, path, body=None):
         else:
             logger.debug("Cache MISS: %r", path)
             try:
-                # TODO search in file system
-                response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
+                response_content = FileHandler.fetch_file(path)
+                # response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
                 logger.debug("File found: %r", path)
 
             except IOError:
@@ -28,7 +29,14 @@ def fulfill_request(whoami, cache, verb, path, body=None):
             return HTTPResponseEncoder.encode(200, response_content)
 
     elif verb == 'POST':
-        return HTTPResponseEncoder.encode(501)
+        try:
+            FileHandler.create_file(path, body)
+
+        except RuntimeError:
+            return HTTPResponseEncoder.encode(409)
+
+        cache.loadEntry(path, body)
+        return HTTPResponseEncoder.encode(201)
 
     elif verb == 'PUT':
         return HTTPResponseEncoder.encode(501)
@@ -53,13 +61,14 @@ class ConnectionHandler:
             data = conn.receive(1024)  # TODO receive up to request ending
             logger.debug("Received data %r", data)
 
-            verb, path, version, headers = HTTPRequestDecoder.decode(data)
+            verb, path, version, headers, body = HTTPRequestDecoder.decode(data)
             logger.debug("Verb %r", verb)
             logger.debug("Path %r", path)
             logger.debug("Version %r", version)
             logger.debug("Headers %r", headers)
+            logger.debug("Body %r", body)
 
-            response = fulfill_request(whoami, self.cache, verb, path)
+            response = fulfill_request(whoami, self.cache, verb, path, body)
 
             conn.send(response)
             logger.debug("Sent data %r", response)

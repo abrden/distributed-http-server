@@ -43,12 +43,14 @@ class FileSystemLock:
 class FileHandler:
     locks = FileSystemLock()
 
-    def ensure_dir(self, file_path):
+    @staticmethod
+    def ensure_dir(file_path):
         directory = os.path.dirname(file_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    def fetch_file(self, path):
+    @staticmethod
+    def fetch_file(path):
         path = '.' + path
         FileHandler.locks.aquire_read(path)
         file = open(path, 'r')
@@ -57,10 +59,11 @@ class FileHandler:
         FileHandler.locks.release_read(path)
         return content
 
-    def create_file(self, path, content):
-        path = './' + path
+    @staticmethod
+    def create_file(path, content):
+        path = '.' + path
         FileHandler.locks.create_and_acquire_write_lock(path)
-        self.ensure_dir(path)
+        FileHandler.ensure_dir(path)
         file = open(path, 'w+')
         file.write(content)
         file.close()
