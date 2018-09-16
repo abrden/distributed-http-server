@@ -3,17 +3,25 @@ logging.basicConfig(level=logging.DEBUG)
 
 from http_server.httpserver import HTTPResponseMaker, HTTPRequestDecoder
 from http_server.sockets import ClientSocket
+from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 
 
-def fullfill_request(verb, path, body=None):
+def fulfill_request(cache, verb, path, body=None):
     if verb == 'GET':
-        response_headers = HTTPResponseMaker.response(404)
-        response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
+        if cache.hasEntry(path):
+            cached_response = cache.getEntry(path)
+            return HTTPResponseMaker.response(200) + cached_response.encode()
+        else:
+            try:
+                # TODO search in file system
+                response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
 
-        server_response = response_headers
-        server_response += response_content
+            except IOError:
+                return HTTPResponseMaker.response(404)
 
-        return server_response
+            cache.loadEntry(path, response_content)
+            return HTTPResponseMaker.response(200) + response_content.encode()
+
     elif verb == 'POST':
         return HTTPResponseMaker.response(501)
 
@@ -24,31 +32,36 @@ def fullfill_request(verb, path, body=None):
         return HTTPResponseMaker.response(501)
 
 
-def handle_client_connection(conn, address):
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("Worker-%r" % (address,))
+class ConnectionHandler:
 
-    try:
-        conn = ClientSocket(conn)
-        logger.debug("Connected %r at %r", conn, address)
+    def __init__(self, cache_size):
+        self.cache = ThreadSafeLRUCache(cache_size)
 
-        data = conn.receive(1024)  # TODO receive up to request ending
-        logger.debug("Received data %r", data)
+    def handle(self, conn, address):
+        logging.basicConfig(level=logging.DEBUG)
+        logger = logging.getLogger("Worker-%r" % (address,))
 
-        verb, path, version, headers = HTTPRequestDecoder.decode(data)
-        logger.debug("Verb %r", verb)
-        logger.debug("Path %r", path)
-        logger.debug("Version %r", version)
-        logger.debug("Headers %r", headers)
+        try:
+            conn = ClientSocket(conn)
+            logger.debug("Connected %r at %r", conn, address)
 
-        response = fullfill_request(verb, path)
+            data = conn.receive(1024)  # TODO receive up to request ending
+            logger.debug("Received data %r", data)
 
-        conn.send(response)
-        logger.debug("Sent data %r", response)
+            verb, path, version, headers = HTTPRequestDecoder.decode(data)
+            logger.debug("Verb %r", verb)
+            logger.debug("Path %r", path)
+            logger.debug("Version %r", version)
+            logger.debug("Headers %r", headers)
 
-    except:
-        logger.exception("Problem handling request")
+            response = fulfill_request(self.cache, verb, path)
 
-    finally:
-        logger.debug("Closing connection with client")
-        conn.close()
+            conn.send(response)
+            logger.debug("Sent data %r", response)
+
+        except:
+            logger.exception("Problem handling request")
+
+        finally:
+            logger.debug("Closing connection with client")
+            conn.close()

@@ -59,7 +59,7 @@ class HTTPServer:
             except OSError:  # SIGINT received
                 return
             self.logger.debug("Connection accepted")
-            worker = threading.Thread(target=self.conn_handler, args=(conn, addr))
+            worker = threading.Thread(target=self.conn_handler.handle, args=(conn, addr))
             worker.setDaemon(True)
             worker.start()
             self.logger.debug("Started worker thread")
