@@ -1,8 +1,20 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPResponseMaker
+from http_server.httpserver import HTTPResponseMaker, HTTPRequestDecoder
 from http_server.sockets import ClientSocket
+
+
+def fullfill_request(verb, path, body=None):
+    # TODO
+
+    response_headers = HTTPResponseMaker.response(404)
+    response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
+
+    server_response = response_headers.encode()
+    server_response += response_content
+
+    return server_response
 
 
 def handle_client_connection(conn, address):
@@ -11,24 +23,25 @@ def handle_client_connection(conn, address):
 
     try:
         conn = ClientSocket(conn)
-
         logger.debug("Connected %r at %r", conn, address)
 
-        data = conn.receive(1024)  # receive data from client
+        data = conn.receive(1024)  # TODO receive up to request ending
         logger.debug("Received data %r", data)
 
-        string = bytes.decode(data)
+        verb, path, version, headers = HTTPRequestDecoder.decode(data)
+        logger.debug("Verb %r", verb)
+        logger.debug("Path %r", path)
+        logger.debug("Version %r", version)
+        logger.debug("Headers %r", headers)
 
-        response_headers = HTTPResponseMaker.response(404)
-        response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
+        response = fullfill_request(verb, path)
 
-        server_response = response_headers.encode()  # return headers for GET and HEAD
-        server_response += response_content  # return additional conten for GET only
+        conn.send(response)
+        logger.debug("Sent data %r", response)
 
-        conn.send(server_response)
-        logger.debug("Sent data %r", server_response)
     except:
         logger.exception("Problem handling request")
+
     finally:
         logger.debug("Closing connection with client")
         conn.close()

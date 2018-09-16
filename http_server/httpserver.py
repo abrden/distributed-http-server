@@ -1,10 +1,25 @@
 import threading
 import time
+import email
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
 from .sockets import Socket
+
+
+class HTTPRequestDecoder:
+
+    @staticmethod
+    def decode(data):
+        request_text = data.decode()
+
+        request_line, headers_alone = request_text.split('\r\n', 1)
+        verb, path, version = request_line.split(' ')
+        message = email.message_from_string(headers_alone)
+        headers = dict(message.items())
+
+        return verb, path, version, headers
 
 
 class HTTPResponseMaker:

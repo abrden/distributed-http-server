@@ -1,5 +1,10 @@
 # distributed-http-server
 
+## Back End
+```
+python3 -m back_end_server 127.0.0.1 5000
+```
+
 ## Dockerize Back End
 ```
 sudo docker build -f back_end_server/Dockerfile -t distribute-http-server-be:latest .
