@@ -6,15 +6,22 @@ from http_server.sockets import ClientSocket
 
 
 def fullfill_request(verb, path, body=None):
-    # TODO
+    if verb == 'GET':
+        response_headers = HTTPResponseMaker.response(404)
+        response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
 
-    response_headers = HTTPResponseMaker.response(404)
-    response_content = b"<html><body><p>Error 404: File not found</p><p>Python HTTP server</p></body></html>"
+        server_response = response_headers
+        server_response += response_content
 
-    server_response = response_headers.encode()
-    server_response += response_content
+        return server_response
+    elif verb == 'POST':
+        return HTTPResponseMaker.response(501)
 
-    return server_response
+    elif verb == 'PUT':
+        return HTTPResponseMaker.response(501)
+
+    elif verb == 'DELETE':
+        return HTTPResponseMaker.response(501)
 
 
 def handle_client_connection(conn, address):

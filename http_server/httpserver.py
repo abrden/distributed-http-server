@@ -31,6 +31,8 @@ class HTTPResponseMaker:
             h = 'HTTP/1.1 200 OK\r\n'
         elif code == 404:
             h = 'HTTP/1.1 404 Not Found\r\n'
+        elif code == 501:
+            h = 'HTTP/1.1 501 Not Implemented\r\n'
 
         # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
@@ -39,7 +41,7 @@ class HTTPResponseMaker:
         h += 'Content-Type: application/json\r\n'
         h += 'Connection: close\r\n\r\n'
 
-        return h
+        return h.encode()
 
 
 class HTTPServer:
