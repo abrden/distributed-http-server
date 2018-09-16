@@ -6,17 +6,22 @@ from http_server.sockets import ClientSocket
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 
 
-def fulfill_request(cache, verb, path, body=None):
+def fulfill_request(whoami, cache, verb, path, body=None):
+    logger = logging.getLogger(whoami)
     if verb == 'GET':
         if cache.hasEntry(path):
+            logger.debug("Cache HIT: %r", path)
             cached_response = cache.getEntry(path)
             return HTTPResponseMaker.response(200) + cached_response.encode()
         else:
+            logger.debug("Cache MISS: %r", path)
             try:
                 # TODO search in file system
                 response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
+                logger.debug("File found: %r", path)
 
             except IOError:
+                logger.debug("File not found: %r", path)
                 return HTTPResponseMaker.response(404)
 
             cache.loadEntry(path, response_content)
@@ -38,8 +43,8 @@ class ConnectionHandler:
         self.cache = ThreadSafeLRUCache(cache_size)
 
     def handle(self, conn, address):
-        logging.basicConfig(level=logging.DEBUG)
-        logger = logging.getLogger("Worker-%r" % (address,))
+        whoami = "Worker-%r" % (address,)
+        logger = logging.getLogger(whoami)
 
         try:
             conn = ClientSocket(conn)
@@ -54,7 +59,7 @@ class ConnectionHandler:
             logger.debug("Version %r", version)
             logger.debug("Headers %r", headers)
 
-            response = fulfill_request(self.cache, verb, path)
+            response = fulfill_request(whoami, self.cache, verb, path)
 
             conn.send(response)
             logger.debug("Sent data %r", response)
