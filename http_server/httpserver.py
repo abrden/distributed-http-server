@@ -30,7 +30,7 @@ class HTTPResponseEncoder:
         h = ''
         if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
-        if code == 201:
+        elif code == 201:
             h = 'HTTP/1.1 201 Created\r\n'
         elif code == 400:
             h = 'HTTP/1.1 400 Bad Request\r\n'

@@ -23,7 +23,6 @@ def fulfill_request(whoami, cache, verb, path, body=None):
             logger.debug("Cache MISS: %r", path)
             try:
                 response_content = FileHandler.fetch_file(path)
-                # response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
                 logger.debug("File found: %r", path)
 
             except IOError:
@@ -38,16 +37,16 @@ def fulfill_request(whoami, cache, verb, path, body=None):
             FileHandler.create_file(path, body)
 
         except RuntimeError:
-            return HTTPResponseEncoder.encode(409)
+            return HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
 
         cache.loadEntry(path, body)
-        return HTTPResponseEncoder.encode(201)
+        return HTTPResponseEncoder.encode(201, 'Created\n')
 
     elif verb == 'PUT':
-        return HTTPResponseEncoder.encode(501)
+        return HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
     elif verb == 'DELETE':
-        return HTTPResponseEncoder.encode(501)
+        return HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
 
 class ConnectionHandler:
