@@ -1,7 +1,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPResponseMaker, HTTPRequestDecoder
+from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
 from http_server.sockets import ClientSocket
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 
@@ -12,7 +12,7 @@ def fulfill_request(whoami, cache, verb, path, body=None):
         if cache.hasEntry(path):
             logger.debug("Cache HIT: %r", path)
             cached_response = cache.getEntry(path)
-            return HTTPResponseMaker.response(200) + cached_response.encode()
+            return HTTPResponseEncoder.encode(200, cached_response)
         else:
             logger.debug("Cache MISS: %r", path)
             try:
@@ -22,19 +22,19 @@ def fulfill_request(whoami, cache, verb, path, body=None):
 
             except IOError:
                 logger.debug("File not found: %r", path)
-                return HTTPResponseMaker.response(404)
+                return HTTPResponseEncoder.encode(404)
 
             cache.loadEntry(path, response_content)
-            return HTTPResponseMaker.response(200) + response_content.encode()
+            return HTTPResponseEncoder.encode(200, response_content)
 
     elif verb == 'POST':
-        return HTTPResponseMaker.response(501)
+        return HTTPResponseEncoder.encode(501)
 
     elif verb == 'PUT':
-        return HTTPResponseMaker.response(501)
+        return HTTPResponseEncoder.encode(501)
 
     elif verb == 'DELETE':
-        return HTTPResponseMaker.response(501)
+        return HTTPResponseEncoder.encode(501)
 
 
 class ConnectionHandler:

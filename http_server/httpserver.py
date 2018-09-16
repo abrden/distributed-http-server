@@ -22,10 +22,10 @@ class HTTPRequestDecoder:
         return verb, path, version, headers
 
 
-class HTTPResponseMaker:
+class HTTPResponseEncoder:
 
     @staticmethod
-    def response(code):
+    def header(code):
         h = ''
         if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
@@ -42,6 +42,13 @@ class HTTPResponseMaker:
         h += 'Connection: close\r\n\r\n'
 
         return h.encode()
+
+    @staticmethod
+    def encode(code, content=None):
+        header = HTTPResponseEncoder.header(code)
+        if content:
+            return header + content.encode()
+        return header
 
 
 class HTTPServer:
