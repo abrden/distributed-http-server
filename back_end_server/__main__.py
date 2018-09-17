@@ -3,12 +3,11 @@ import signal
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPServer
-from .connection_handler import ConnectionHandler
+from .back_end_server import BackEndServer
 
 
 def main():
-    logger = logging.getLogger("BEServer")
+    logger = logging.getLogger("BE-Server")
 
     def graceful_shutdown(sig, dummy):
         s.shutdown()
@@ -16,9 +15,8 @@ def main():
     signal.signal(signal.SIGINT, graceful_shutdown)
 
     logger.info("Starting BE Server")
-    handler = ConnectionHandler(int(sys.argv[3]))
-    s = HTTPServer(sys.argv[1], int(sys.argv[2]), handler)
-    s.wait_for_connections()
+    s = BackEndServer(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+    s.start()
     logger.info("Done")
 
 

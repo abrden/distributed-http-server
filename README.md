@@ -11,6 +11,11 @@ sudo docker build -f back_end_server/Dockerfile -t distribute-http-server-be:lat
 sudo docker run -p 5001:5000 distribute-http-server-be
 ```
 
+## Front End
+```
+python3 -m front_end_server 127.0.0.1 5000 127.0.0.1 5001 1
+```
+
 ## cURL Examples
 ```
 curl -X GET http://0.0.0.0:5001
