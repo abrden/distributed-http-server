@@ -18,6 +18,9 @@ class BackEndServer:
         while True:
             try:
                 data = self.bridge.receive_request()
+                if data == b'':
+                    self.logger.debug("Bridge closed remotely")
+                    break
                 self.logger.debug("Received data %r", data)
 
                 verb, path, version, headers, body = HTTPRequestDecoder.decode(data)

@@ -26,10 +26,10 @@ class HTTPRequestDecoder:
 class HTTPRequestEncoder:
 
     @staticmethod
-    def encode(verb, path, body=None):
-        h = verb + ' ' + path + 'HTTP/1.1\r\n\r\n'
+    def encode(host, port, verb, path, body=None):
+        h = verb + ' ' + path + ' ' + 'HTTP/1.1\r\nHost: ' + host + ':' + str(port) + '\r\n\r\n'
         if body:
-            return h.encode + body.encode()
+            return (h + body).encode()
         return h.encode()
 
 
@@ -73,7 +73,7 @@ class HTTPResponseEncoder:
 class HTTPServer:
 
     def __init__(self, host, port, conn_handler):
-        self.logger = logging.getLogger("BEHTTPServer")
+        self.logger = logging.getLogger("HTTPServer")
         self.socket = ServerSocket(host, port)
         self.conn_handler = conn_handler
 

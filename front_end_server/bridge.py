@@ -10,6 +10,8 @@ from http_server.sockets import ServerSocket, ClientsSocket
 class Bridge:
 
     def __init__(self, host, port, servers):
+        self.host = host
+        self.port = port
         self.servers = servers
         self.logger = logging.getLogger("FE-Bridge")
         self.socket = ServerSocket(host, port)
@@ -35,7 +37,7 @@ class Bridge:
 
         self.be_conn_locks[be_num].acquire()
 
-        conn.send(HTTPRequestEncoder.encode(verb, path, body))
+        conn.send(HTTPRequestEncoder.encode(self.host, self.port, verb, path, body))
 
         self.logger.debug("Waiting for %r response", be_num)
         content = conn.receive(1024)  # TODO Receive until ???
