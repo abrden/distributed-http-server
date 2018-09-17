@@ -4,10 +4,16 @@ logging.basicConfig(level=logging.DEBUG)
 from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
 from http_server.sockets import ClientSocket
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
+from .file_handler import FileHandler
 
 
 def fulfill_request(whoami, cache, verb, path, body=None):
     logger = logging.getLogger(whoami)
+
+    if path == "/":
+        logger.debug("Empty path: %r", path)
+        return HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
+
     if verb == 'GET':
         if cache.hasEntry(path):
             logger.debug("Cache HIT: %r", path)
@@ -16,25 +22,31 @@ def fulfill_request(whoami, cache, verb, path, body=None):
         else:
             logger.debug("Cache MISS: %r", path)
             try:
-                # TODO search in file system
-                response_content = "<html><body><p>Hello world!</p><p>From BE HTTP server</p></body></html>"
+                response_content = FileHandler.fetch_file(path)
                 logger.debug("File found: %r", path)
 
             except IOError:
                 logger.debug("File not found: %r", path)
-                return HTTPResponseEncoder.encode(404)
+                return HTTPResponseEncoder.encode(404, 'File not found\n')
 
             cache.loadEntry(path, response_content)
             return HTTPResponseEncoder.encode(200, response_content)
 
     elif verb == 'POST':
-        return HTTPResponseEncoder.encode(501)
+        try:
+            FileHandler.create_file(path, body)
+
+        except RuntimeError:
+            return HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
+
+        cache.loadEntry(path, body)
+        return HTTPResponseEncoder.encode(201, 'Created\n')
 
     elif verb == 'PUT':
-        return HTTPResponseEncoder.encode(501)
+        return HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
     elif verb == 'DELETE':
-        return HTTPResponseEncoder.encode(501)
+        return HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
 
 class ConnectionHandler:
@@ -53,13 +65,14 @@ class ConnectionHandler:
             data = conn.receive(1024)  # TODO receive up to request ending
             logger.debug("Received data %r", data)
 
-            verb, path, version, headers = HTTPRequestDecoder.decode(data)
+            verb, path, version, headers, body = HTTPRequestDecoder.decode(data)
             logger.debug("Verb %r", verb)
             logger.debug("Path %r", path)
             logger.debug("Version %r", version)
             logger.debug("Headers %r", headers)
+            logger.debug("Body %r", body)
 
-            response = fulfill_request(whoami, self.cache, verb, path)
+            response = fulfill_request(whoami, self.cache, verb, path, body)
 
             conn.send(response)
             logger.debug("Sent data %r", response)

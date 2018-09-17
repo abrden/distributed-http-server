@@ -14,12 +14,13 @@ class HTTPRequestDecoder:
     def decode(data):
         request_text = data.decode()
 
-        request_line, headers_alone = request_text.split('\r\n', 1)
+        request_line, rest = request_text.split('\r\n', 1)
+        headers_alone, body = rest.split('\r\n\r\n', 1)
         verb, path, version = request_line.split(' ')
         message = email.message_from_string(headers_alone)
         headers = dict(message.items())
 
-        return verb, path, version, headers
+        return verb, path, version, headers, body
 
 
 class HTTPResponseEncoder:
@@ -29,10 +30,18 @@ class HTTPResponseEncoder:
         h = ''
         if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
+        elif code == 201:
+            h = 'HTTP/1.1 201 Created\r\n'
+        elif code == 400:
+            h = 'HTTP/1.1 400 Bad Request\r\n'
         elif code == 404:
             h = 'HTTP/1.1 404 Not Found\r\n'
+        elif code == 409:
+            h = 'HTTP/1.1 409 Conflict\r\n'
         elif code == 501:
             h = 'HTTP/1.1 501 Not Implemented\r\n'
+        else:
+            raise RuntimeError  # TODO specific error
 
         # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
