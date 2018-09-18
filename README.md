@@ -24,6 +24,6 @@ sudo docker run -p 5001:5000 distribute-http-server-be
 
 ## cURL Examples
 ```
-curl -X GET http://0.0.0.0:5001
-curl -X POST http://0.0.0.0:5000 -d '{"key1":"value1", "key2":"value2"}'
+curl -X GET http://0.0.0.0:5001/netflix/movie/2
+curl -X POST http://0.0.0.0:5000/netflix/movie/2 -d '{"key1":"value1", "key2":"value2"}'
 ```
