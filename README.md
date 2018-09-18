@@ -5,6 +5,12 @@
 python3 -m front_end_server 127.0.0.1 5000 127.0.0.1 5001 1
 ```
 
+## Dockerize Front End
+```
+sudo docker build -f front_end_server/Dockerfile -t distribute-http-server-fe:latest .
+sudo docker run -p 5000:5000 -p 5001:5001 distribute-http-server-fe
+```
+
 ## Back End
 ```
 python3 -m back_end_server 127.0.0.1 5001 0
