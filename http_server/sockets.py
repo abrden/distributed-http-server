@@ -1,7 +1,23 @@
 import socket
 
 
-class Socket:
+class ClientSocket:
+
+    def __init__(self, host, port):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((host, port))
+
+    def receive(self, bytes):
+        return self.s.recv(bytes)
+
+    def send(self, data):
+        return self.s.sendall(data)
+
+    def close(self):
+        return self.s.close()
+
+
+class ServerSocket:
 
     def __init__(self, host, port):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,7 +34,7 @@ class Socket:
         return self.s.close()
 
 
-class ClientSocket:
+class ClientsSocket:
 
     def __init__(self, conn):
         self.conn = conn

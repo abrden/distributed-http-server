@@ -1,0 +1,22 @@
+version: "3"
+services:
+  front:
+    build:
+      context: .
+      dockerfile: front_end_server/Dockerfile
+    ports:
+      - "5000:5000"
+    networks:
+      - bridge
+
+  back:
+    build:
+      context: .
+      dockerfile: back_end_server/Dockerfile
+    depends_on:
+      - front
+    networks:
+      - bridge
+
+networks:
+  bridge:

@@ -5,7 +5,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from .sockets import Socket
+from .sockets import ServerSocket
 
 
 class HTTPRequestDecoder:
@@ -21,6 +21,16 @@ class HTTPRequestDecoder:
         headers = dict(message.items())
 
         return verb, path, version, headers, body
+
+
+class HTTPRequestEncoder:
+
+    @staticmethod
+    def encode(host, port, verb, path, body=None):
+        h = verb + ' ' + path + ' ' + 'HTTP/1.1\r\nHost: ' + host + ':' + str(port) + '\r\n\r\n'
+        if body:
+            return (h + body).encode()
+        return h.encode()
 
 
 class HTTPResponseEncoder:
@@ -63,8 +73,8 @@ class HTTPResponseEncoder:
 class HTTPServer:
 
     def __init__(self, host, port, conn_handler):
-        self.logger = logging.getLogger("BEHTTPServer")
-        self.socket = Socket(host, port)
+        self.logger = logging.getLogger("HTTPServer")
+        self.socket = ServerSocket(host, port)
         self.conn_handler = conn_handler
 
     def wait_for_connections(self):

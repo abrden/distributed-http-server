@@ -12,6 +12,8 @@ RUN pip3 install -r requirements.txt
 COPY ./back_end_server /be/be_server
 COPY ./http_server /be/http_server
 
+ENV CACHE_SIZE 0
+
 ENTRYPOINT [ "python3" ]
 
-CMD [ "-m", "be_server", "0.0.0.0", "5000" ]
+CMD [ "-m", "be_server", "front", "5001", "0" ]
