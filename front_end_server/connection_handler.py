@@ -1,3 +1,4 @@
+import uuid
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -6,7 +7,25 @@ from http_server.sockets import ClientsSocket
 from .bridge import Bridge
 
 
-class ConnectionHandler:
+class RequestsPending:
+    clients = {}
+
+    @staticmethod
+    def new_request(client_conn):
+        req_id = uuid.uuid4().hex
+        RequestsPending.clients[id] = client_conn
+        return req_id
+
+    @staticmethod
+    def get_client_from_request(req_id):
+        return RequestsPending.clients[req_id]
+
+    @staticmethod
+    def request_completed(req_id):
+        del RequestsPending.clients[req_id]
+
+
+class RequestReceiverThread:
 
     def __init__(self, bridge_host, bridge_port, servers):
         self.servers = servers
