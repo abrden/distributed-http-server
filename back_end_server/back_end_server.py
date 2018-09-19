@@ -53,20 +53,20 @@ class FileManager(Process):
             self.logger.debug("Headers %r", headers)
             self.logger.debug("Body %r", body)
 
-            res = self.fulfill_request(verb, path, body)
+            res = self.fulfill_request(headers['Request-Id'], verb, path, body)
             self.logger.debug("Sending response through pipe %r", res)
             self.response_pipe.send(res)
 
-    def fulfill_request(self, verb, path, body=None):
+    def fulfill_request(self, req_id, verb, path, body=None):
         if path == "/":
             self.logger.debug("Empty path: %r", path)
-            return HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == 'GET':
             if self.cache.hasEntry(path):
                 self.logger.debug("Cache HIT: %r", path)
                 cached_response = self.cache.getEntry(path)
-                return HTTPResponseEncoder.encode(200, cached_response)
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, cached_response)
             else:
                 self.logger.debug("Cache MISS: %r", path)
                 try:
@@ -75,26 +75,26 @@ class FileManager(Process):
 
                 except IOError:
                     self.logger.debug("File not found: %r", path)
-                    return HTTPResponseEncoder.encode(404, 'File not found\n')
+                    return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
 
                 self.cache.loadEntry(path, response_content)
-                return HTTPResponseEncoder.encode(200, response_content)
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, response_content)
 
         elif verb == 'POST':
             try:
                 FileHandler.create_file(path, body)
 
             except RuntimeError:
-                return HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
 
             self.cache.loadEntry(path, body)
-            return HTTPResponseEncoder.encode(201, 'Created\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, 'Created\n')
 
         elif verb == 'PUT':
-            return HTTPResponseEncoder.encode(501, 'Not implemented\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
         elif verb == 'DELETE':
-            return HTTPResponseEncoder.encode(501, 'Not implemented\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
 
 class RequestReceiverThread(Thread):
@@ -125,7 +125,7 @@ class ResponseSenderThread(Thread):
 
     def __init__(self, response_pipe, bridge):
         Thread.__init__(self)
-        self.logger = logging.getLogger('ResponseSenderThread')
+        self.logger = logging.getLogger("ResponseSenderThread")
 
         self.response_pipe = response_pipe
 
@@ -148,7 +148,7 @@ class ResponseSenderThread(Thread):
 class BackEndServer:
 
     def __init__(self, front_end_host, front_end_port, cache_size):
-        self.logger = logging.getLogger('BackEndServer')
+        self.logger = logging.getLogger("BackEndServer")
 
         self.logger.debug("Instantiating pipes")
         request_p_out, request_p_in = Pipe()

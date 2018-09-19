@@ -4,8 +4,23 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPRequestEncoder
 from http_server.sockets import ServerSocket, ClientsSocket
+
+
+class BridgePDUDecoder:
+
+    @staticmethod
+    def decode(response):
+        req_id, data = response.decode().split('\r\n', 1)
+        return req_id, data.encode()
+
+
+class BridgePDUEncoder:
+
+    @staticmethod
+    def encode(request, req_id):
+        required_header, rest = request.decode().split('\r\n', 1)
+        return (required_header + '\r\n' + 'Request-Id: ' + req_id + '\r\n' + rest).encode()
 
 
 class Bridge:
@@ -32,18 +47,20 @@ class Bridge:
         origin = location[0]
         return self.hasher(origin) % self.servers
 
-    def do_request(self, path, verb, body=None):
+    def send_request(self, path, data):
         be_num = self.where_to(path)
-        self.logger.debug("Sending %r request %r to %r", verb, body, be_num)
+        self.logger.debug("Sending request %r to %r", data, be_num)
         conn = self.be_conn[be_num]
 
         self.be_conn_locks[be_num].acquire()
+        conn.send(data)
+        self.be_conn_locks[be_num].release()
 
-        conn.send(HTTPRequestEncoder.encode(self.host, self.port, verb, path, body))
-
+    def wait_for_response(self, be_num):
         self.logger.debug("Waiting for %r response", be_num)
+        conn = self.be_conn[be_num]
+        self.be_conn_locks[be_num].acquire()
         content = conn.receive(1024)  # TODO Receive until ???
-
         self.be_conn_locks[be_num].release()
 
         self.logger.debug("Received %r response from %r", content, be_num)
