@@ -48,7 +48,7 @@ class FileHandler:
     def fetch_file(path):
         path = '.' + path
 
-        if not os.path.isfile(path):  # Check if file exists
+        if not os.path.isfile(path):
             raise IOError('File does not exist')
 
         FileHandler.locks.acquire_read(path)
