@@ -1,4 +1,5 @@
 from threading import Lock
+import pyhash
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -17,6 +18,7 @@ class Bridge:
         self.socket = ServerSocket(host, port)
         self.be_conn = []
         self.be_conn_locks = []
+        self.hasher = pyhash.super_fast_hash()
         self.logger.debug("Connecting with BE servers")
         for i in range(self.servers):
             conn, addr = self.socket.accept_client()  # TODO Van a quedar ordenados distinto en cada arranque
@@ -28,7 +30,7 @@ class Bridge:
     def where_to(self, path):
         location = path.split('/')[1:]
         origin = location[0]
-        return hash(origin) % self.servers
+        return self.hasher(origin) % self.servers
 
     def do_request(self, path, verb, body=None):
         be_num = self.where_to(path)
