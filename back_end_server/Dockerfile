@@ -7,6 +7,7 @@ COPY ./back_end_server/requirements.txt /be/requirements.txt
 
 WORKDIR /be
 
+RUN pip3 install --upgrade pip setuptools
 RUN pip3 install -r requirements.txt
 
 COPY ./back_end_server /be/be_server

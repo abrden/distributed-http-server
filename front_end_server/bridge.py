@@ -40,7 +40,7 @@ class Bridge:
             self.logger.debug("Connection accepted %r" % (addr,))
             cs = ClientsSocket(conn)
             self.be_conn.append(cs)
-            self.be_conn_locks.append(Lock())
+            self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 
     def where_to(self, path):
         location = path.split('/')[1:]
@@ -52,16 +52,18 @@ class Bridge:
         self.logger.debug("Sending request %r to %r", data, be_num)
         conn = self.be_conn[be_num]
 
-        self.be_conn_locks[be_num].acquire()
+        self.be_conn_locks[be_num][0].acquire()
+        self.logger.debug("Sending request to %r", be_num)
         conn.send(data)
-        self.be_conn_locks[be_num].release()
+        self.logger.debug("Request sent to %r", be_num)
+        self.be_conn_locks[be_num][0].release()
 
     def wait_for_response(self, be_num):
         self.logger.debug("Waiting for %r response", be_num)
         conn = self.be_conn[be_num]
-        self.be_conn_locks[be_num].acquire()
+        self.be_conn_locks[be_num][1].acquire()
         content = conn.receive(1024)  # TODO Receive until ???
-        self.be_conn_locks[be_num].release()
+        self.be_conn_locks[be_num][1].release()
 
         self.logger.debug("Received %r response from %r", content, be_num)
         return content

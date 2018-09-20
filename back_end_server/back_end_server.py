@@ -18,10 +18,12 @@ class FileManager(Process):
 
         self.logger = logging.getLogger('FileManager')
 
+        self.logger.debug("Initializing cache with size %r", cache_size)
         self.cache = ThreadSafeLRUCache(cache_size)
 
         requests_p_in.close()
         response_p_out.close()
+
         self.request_pipe = PipeRead(requests_p_out)
         self.response_pipe = PipeWrite(response_p_in)
 
@@ -31,18 +33,22 @@ class FileManager(Process):
         self.start()
 
     def run(self):
-        for _ in range(10):  # TODO Make customizable
+        self.logger.debug("Creating worker threads")
+        for _ in range(1):  # TODO Make customizable
             worker = Thread(target=self.work)
+            worker.daemon = True
+            worker.start()
             self.workers.append(worker)
+            for w in self.workers:
+                w.join()
 
     def shutdown(self):
         self.request_pipe.close()
         self.response_pipe.close()
-        for w in self.workers:
-            w.join()
 
     def work(self):
         while True:
+            self.logger.debug("Waiting for request at the end of req pipe")
             req = self.request_pipe.receive()
             self.logger.debug("Request received from pipe %r", req)
 
@@ -119,6 +125,7 @@ class RequestReceiverThread(Thread):
             self.logger.debug("Received request from bridge %r", data)
             self.logger.debug("Sending request through pipe")
             self.request_pipe.send(data)
+            self.logger.debug("Request sent through pipe")
 
 
 class ResponseSenderThread(Thread):
@@ -153,11 +160,12 @@ class BackEndServer:
         self.logger.debug("Instantiating pipes")
         request_p_out, request_p_in = Pipe()
         response_p_out, response_p_in = Pipe()
-        self.logger.debug("Building bridge with FE")
-        self.bridge = Bridge(front_end_host, front_end_port)
 
         self.logger.debug("Starting FileManagerProcess")
         self.file_manager_process = FileManager(cache_size, request_p_in, request_p_out, response_p_in, response_p_out)
+
+        self.logger.debug("Building bridge with FE")
+        self.bridge = Bridge(front_end_host, front_end_port)
 
         request_p_out.close()
         response_p_in.close()

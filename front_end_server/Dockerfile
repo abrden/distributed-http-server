@@ -7,6 +7,7 @@ COPY ./front_end_server/requirements.txt /fe/requirements.txt
 
 WORKDIR /fe
 
+RUN pip3 install --upgrade pip setuptools
 RUN pip3 install -r requirements.txt
 
 COPY ./front_end_server /fe/fe_server

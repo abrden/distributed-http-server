@@ -31,10 +31,10 @@ class RequestReceiverThread(Thread):
 
     def __init__(self, conn, address, bridge):
         super(RequestReceiverThread, self).__init__()
-        self.logger = logging.getLogger("RequestReceiverThread-%r" % (self.address,))
         self.conn = conn
         self.address = address
         self.bridge = bridge
+        self.logger = logging.getLogger("RequestReceiverThread-%r" % (self.address,))
 
         self.daemon = True
         self.start()
@@ -64,10 +64,6 @@ class RequestReceiverThread(Thread):
 
         except:
             self.logger.exception("Problem handling clients request")
-
-        finally:
-            self.logger.debug("Closing connection with client")
-            conn.close()
 
 
 class HTTPServer:
@@ -105,9 +101,9 @@ class ResponseSenderThread(Thread):
 
     def __init__(self, bridge, be_num):
         super(ResponseSenderThread, self).__init__()
-        self.logger = logging.getLogger("ResponseSenderThread-%r" % (self.be_num,))
-        self.bridge = bridge
         self.be_num = be_num
+        self.bridge = bridge
+        self.logger = logging.getLogger("ResponseSenderThread-%r" % (self.be_num,))
 
         self.daemon = True
         self.start()
@@ -127,15 +123,17 @@ class ResponseSenderThread(Thread):
             conn.send(data)
             self.logger.debug("Sent data %r to client", data)
             RequestsPending.request_completed(req_id)
+            self.logger.debug("Closing connection with client")
+            conn.close()
 
 
 class FrontEndServer:
 
     def __init__(self, host, port, bridge_host, bridge_port, servers):
         self.logger = logging.getLogger("FrontEndServer")
-        self.logger.debug("Creating Bridge")
+        self.logger.debug("Building bridge with BE")
         self.bridge = Bridge(bridge_host, bridge_port, servers)
-        self.logger.debug("HTTP Server")
+        self.logger.debug("Creating HTTP Server")
         self.http_server = HTTPServer(host, port, RequestReceiverThread, self.bridge)
 
         self.servers = servers

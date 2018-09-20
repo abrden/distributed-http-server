@@ -30,6 +30,8 @@ curl -X POST http://0.0.0.0:5000/netflix/movie/2 -d '{"key1":"value1", "key2":"v
 
 ## Docker compose
 ```
+sudo docker-compose build && sudo docker-compose up
+
 sudo docker-compose up --scale back=5
 ```
 Don't forget to change the FE dockerfile in order to accept 5 BE's
