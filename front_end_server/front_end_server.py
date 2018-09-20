@@ -15,7 +15,7 @@ class RequestsPending:
     @staticmethod
     def new_request(client_conn):
         req_id = uuid.uuid4().hex
-        RequestsPending.clients[id] = client_conn
+        RequestsPending.clients[req_id] = client_conn
         return req_id
 
     @staticmethod

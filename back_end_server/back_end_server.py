@@ -1,6 +1,7 @@
 from multiprocessing import Process, Pipe
 from threading import Thread
 import logging
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -21,11 +22,13 @@ class FileManager(Process):
         self.logger.debug("Initializing cache with size %r", cache_size)
         self.cache = ThreadSafeLRUCache(cache_size)
 
-        requests_p_in.close()
-        response_p_out.close()
-
         self.request_pipe = PipeRead(requests_p_out)
         self.response_pipe = PipeWrite(response_p_in)
+
+        #### TODO Doesnt work if i close them
+        #self.logger.debug("Closing unused pipe fds")
+        #requests_p_in.close()
+        #response_p_out.close()
 
         self.workers = []
 
@@ -103,7 +106,7 @@ class FileManager(Process):
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
 
 
-class RequestReceiverThread(Thread):
+class RequestReceiverThread(Thread):  # Name in terms of the client
 
     def __init__(self, request_pipe, bridge):
         Thread.__init__(self)
@@ -161,29 +164,32 @@ class BackEndServer:
         request_p_out, request_p_in = Pipe()
         response_p_out, response_p_in = Pipe()
 
-        self.logger.debug("Starting FileManagerProcess")
-        self.file_manager_process = FileManager(cache_size, request_p_in, request_p_out, response_p_in, response_p_out)
+        self.request_pipe = PipeWrite(request_p_in)
+        self.response_pipe = PipeRead(response_p_out)
 
         self.logger.debug("Building bridge with FE")
         self.bridge = Bridge(front_end_host, front_end_port)
 
+        self.logger.debug("Starting RequestReceiver Thread")
+        self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
+
+        self.logger.debug("Starting FileManager Process")
+        self.file_manager_process = FileManager(cache_size, request_p_in, request_p_out, response_p_in, response_p_out)
+
+        self.logger.debug("Closing unused pipe fds")
         request_p_out.close()
         response_p_in.close()
 
-        self.request_pipe = PipeWrite(request_p_in)
-        self.response_pipe = PipeRead(response_p_out)
-        #self.req_receiver_thread = RequestReceiverThread(self.requests_p_in, self.bridge)
-
-        self.res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
+        #self.res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
 
     def start(self):
-        receiver = RequestReceiverThread(self.request_pipe, self.bridge)
-        receiver.run()
+        res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
+        res_sender_thread.run()
 
     def shutdown(self):
         self.bridge.shutdown()
-        #self.req_receiver_thread.join()
-        self.res_sender_thread.join()
+        self.req_receiver_thread.join()
+        #self.res_sender_thread.join()
         self.file_manager_process.join()
         self.request_pipe.close()
         self.response_pipe.close()
