@@ -34,11 +34,17 @@ class Bridge:
         self.be_conn = []
         self.be_conn_locks = []
         self.hasher = pyhash.super_fast_hash()
+
         self.logger.debug("Connecting with BE servers")
+        connections = []
         for i in range(self.servers):
             conn, addr = self.socket.accept_client()  # TODO Van a quedar ordenados distinto en cada arranque
             self.logger.debug("Connection accepted %r" % (addr,))
-            cs = ClientsSocket(conn)
+            connections.append((addr, conn))
+
+        connections.sort()
+        for client in connections:
+            cs = ClientsSocket(client[1])
             self.be_conn.append(cs)
             self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 
