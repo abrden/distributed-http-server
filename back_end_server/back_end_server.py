@@ -1,7 +1,6 @@
 from multiprocessing import Process, Pipe
 from threading import Thread
 import logging
-import time
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -12,44 +11,21 @@ from .bridge import Bridge
 from .concurrency.pipes import PipeRead, PipeWrite
 
 
-class FileManager(Process):
+class FileManagerWorker(Thread):
 
-    def __init__(self, cache_size, requests_p_in, requests_p_out, response_p_in, response_p_out):
-        super(FileManager, self).__init__()
+    def __init__(self, request_pipe, response_pipe, cache):
+        super(FileManagerWorker, self).__init__()
 
-        self.logger = logging.getLogger('FileManager')
+        self.logger = logging.getLogger('FileManagerWorker-%r' % self.getName())
 
-        self.logger.debug("Initializing cache with size %r", cache_size)
-        self.cache = ThreadSafeLRUCache(cache_size)
-
-        self.request_pipe = PipeRead(requests_p_out)
-        self.response_pipe = PipeWrite(response_p_in)
-
-        #### TODO Doesnt work if i close them
-        #self.logger.debug("Closing unused pipe fds")
-        #requests_p_in.close()
-        #response_p_out.close()
-
-        self.workers = []
+        self.cache = cache
+        self.request_pipe = request_pipe
+        self.response_pipe = response_pipe
 
         self.daemon = True
         self.start()
 
     def run(self):
-        self.logger.debug("Creating worker threads")
-        for _ in range(1):  # TODO Make customizable
-            worker = Thread(target=self.work)
-            worker.daemon = True
-            worker.start()
-            self.workers.append(worker)
-            for w in self.workers:
-                w.join()
-
-    def shutdown(self):
-        self.request_pipe.close()
-        self.response_pipe.close()
-
-    def work(self):
         while True:
             self.logger.debug("Waiting for request at the end of req pipe")
             req = self.request_pipe.receive()
@@ -104,6 +80,42 @@ class FileManager(Process):
 
         elif verb == 'DELETE':
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
+
+
+class FileManager(Process):
+
+    def __init__(self, cache_size, requests_p_in, requests_p_out, response_p_in, response_p_out):
+        super(FileManager, self).__init__()
+
+        self.logger = logging.getLogger('FileManager')
+
+        self.logger.debug("Initializing cache with size %r", cache_size)
+        self.cache = ThreadSafeLRUCache(cache_size)
+
+        self.request_pipe = PipeRead(requests_p_out)
+        self.response_pipe = PipeWrite(response_p_in)
+
+        #### TODO Doesnt work if i close them
+        #self.logger.debug("Closing unused pipe fds")
+        #requests_p_in.close()
+        #response_p_out.close()
+
+        self.workers = []
+
+        self.daemon = True
+        self.start()
+
+    def run(self):
+        self.logger.debug("Creating worker threads")
+        for _ in range(3):  # TODO Make customizable
+            worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
+            self.workers.append(worker)
+        for w in self.workers:
+            w.join()
+
+    def shutdown(self):
+        self.request_pipe.close()
+        self.response_pipe.close()
 
 
 class RequestReceiverThread(Thread):  # Name in terms of the client
