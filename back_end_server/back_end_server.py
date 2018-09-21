@@ -135,7 +135,8 @@ class RequestReceiverThread(Thread):  # Name in terms of the client
         while True:
             data = self.bridge.receive_request()
             if data == b'':
-                self.logger.debug("Bridge closed remotely")
+                self.logger.debug("Bridge closed remotely. Ending my run")
+                #self.request_pipe.close()
                 break
             self.logger.debug("Received request from bridge %r", data)
             self.logger.debug("Sending request through pipe")

@@ -13,6 +13,9 @@ class ClientSocket:
     def send(self, data):
         return self.s.sendall(data)
 
+    def shutdown(self):
+        return self.s.shutdown(socket.SHUT_RDWR)
+
     def close(self):
         return self.s.close()
 
@@ -44,6 +47,9 @@ class ClientsSocket:
 
     def send(self, data):
         return self.conn.sendall(data)
+
+    def shutdown(self):
+        return self.conn.shutdown(socket.SHUT_RDWR)
 
     def close(self):
         return self.conn.close()

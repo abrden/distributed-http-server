@@ -113,7 +113,7 @@ class ResponseSenderThread(Thread):
             self.logger.debug("Waiting for BE server %r response", self.be_num)
             response = self.bridge.wait_for_response(self.be_num)
             if response == b'':
-                self.logger.debug("Bridge closed remotely")
+                self.logger.debug("Bridge closed remotely. Ending my run")
                 return
             self.logger.debug("Received response from BE server %r: %r", self.be_num, response)
             req_id, data = BridgePDUDecoder.decode(response)
@@ -138,7 +138,7 @@ class FrontEndServer:
 
         self.servers = servers
         self.responders = []
-        self.logger.debug("Creating ResponseSenderThread")
+        self.logger.debug("Creating ResponseSenderThreads")
         for i in range(self.servers):
             responder = ResponseSenderThread(self.bridge, i)
             self.responders.append(responder)
@@ -149,6 +149,6 @@ class FrontEndServer:
     def shutdown(self):
         self.http_server.shutdown()
         self.bridge.shutdown()
-        for thread in self.responders:
-            self.logger.debug("Joining responder")
-            thread.join()
+        for i in range(len(self.responders)):
+            self.logger.debug("Joining ResponseSenderThread-%r", i)
+            self.responders[i].join()
