@@ -107,7 +107,7 @@ class FileManager(Process):
 
     def run(self):
         self.logger.debug("Creating worker threads")
-        for _ in range(3):  # TODO Make customizable
+        for _ in range(3 - 1):  # TODO Make customizable
             worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
             self.workers.append(worker)
         for w in self.workers:
@@ -136,7 +136,6 @@ class RequestReceiverThread(Thread):  # Name in terms of the client
             data = self.bridge.receive_request()
             if data == b'':
                 self.logger.debug("Bridge closed remotely. Ending my run")
-                #self.request_pipe.close()
                 break
             self.logger.debug("Received request from bridge %r", data)
             self.logger.debug("Sending request through pipe")
@@ -200,9 +199,13 @@ class BackEndServer:
         res_sender_thread.run()
 
     def shutdown(self):
+        self.logger.debug("Closing Bridge")
         self.bridge.shutdown()
-        self.req_receiver_thread.join()
-        #self.res_sender_thread.join()
-        self.file_manager_process.join()
+        self.logger.debug("Closing Pipes")
         self.request_pipe.close()
         self.response_pipe.close()
+        self.logger.debug("Joining RequestReceiver Thread")
+        self.req_receiver_thread.join()
+        #self.res_sender_thread.join()
+        self.logger.debug("Joining FileManager Process")
+        self.file_manager_process.join()

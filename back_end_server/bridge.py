@@ -23,5 +23,4 @@ class Bridge:
 
     def shutdown(self):
         self.logger.debug("Closing bridge")
-        self.socket.shutdown()
         self.socket.close()
