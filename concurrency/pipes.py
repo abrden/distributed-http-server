@@ -9,7 +9,11 @@ class PipeWrite:
 
     def send(self, data):
         self.mutex.acquire()
-        self.fd.send(data)
+        try:
+            self.fd.send(data)
+        except OSError:
+            self.mutex.release()
+            raise OSError
         self.mutex.release()
 
     def close(self):

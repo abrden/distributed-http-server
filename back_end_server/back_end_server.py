@@ -111,11 +111,6 @@ class FileManager(Process):
         self.request_pipe = PipeRead(requests_p_out)
         self.response_pipe = PipeWrite(response_p_in)
 
-        #### TODO Doesnt work if i close them
-        #self.logger.debug("Closing unused pipe fds")
-        #requests_p_in.close()
-        #response_p_out.close()
-
         self.workers = []
 
         self.start()
