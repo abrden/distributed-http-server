@@ -77,9 +77,7 @@ class Bridge:
     def shutdown(self):
         self.logger.debug("Closing bridge")
         for conn in self.be_conn:
-            conn.shutdown()
             conn.close()
-        self.socket.shutdown()
         self.socket.close()
 
 
