@@ -24,7 +24,11 @@ class PipeRead:
 
     def receive(self):
         self.mutex.acquire()
-        data = self.fd.recv()
+        try:
+            data = self.fd.recv()
+        except OSError:
+            self.mutex.release()
+            return
         self.mutex.release()
         return data
 

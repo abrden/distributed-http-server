@@ -22,13 +22,15 @@ class FileManagerWorker(Thread):
         self.request_pipe = request_pipe
         self.response_pipe = response_pipe
 
-        self.daemon = True
         self.start()
 
     def run(self):
         while True:
             self.logger.debug("Waiting for request at the end of req pipe")
             req = self.request_pipe.receive()
+            if req is None:
+                self.logger.debug("Pipe closed. Ending my run")
+                break
             self.logger.debug("Request received from pipe %r", req)
 
             verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
@@ -98,7 +100,7 @@ class FileManagerWorker(Thread):
 
 class FileManager(Process):
 
-    def __init__(self, cache_size, requests_p_in, requests_p_out, response_p_in, response_p_out):
+    def __init__(self, cache_size, requests_p_out, response_p_in):
         super(FileManager, self).__init__()
 
         self.logger = logging.getLogger('FileManager')
@@ -116,7 +118,6 @@ class FileManager(Process):
 
         self.workers = []
 
-        self.daemon = True
         self.start()
 
     def run(self):
@@ -124,12 +125,18 @@ class FileManager(Process):
         for _ in range(3):  # TODO Make customizable
             worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
             self.workers.append(worker)
-        for w in self.workers:
-            w.join()
+        try:
+            for w in self.workers:  #TODO FIXXXXXXXXXX
+                w.join()
+        except KeyboardInterrupt:
+            self.logger.debug("KeyboardInterrupt received. Ending my run")
+            self.shutdown()
 
     def shutdown(self):
         self.request_pipe.close()
         self.response_pipe.close()
+        for w in self.workers:
+            w.join()
 
 
 class RequestReceiverThread(Thread):  # Name in terms of the client
@@ -142,12 +149,15 @@ class RequestReceiverThread(Thread):  # Name in terms of the client
 
         self.bridge = bridge
 
-        self.daemon = True
         self.start()
 
     def run(self):
         while True:
-            data = self.bridge.receive_request()
+            try:
+                data = self.bridge.receive_request()
+            except KeyboardInterrupt:
+                self.logger.debug("KeyboardInterrupt received. Ending my run")
+                break
             if data == b'':
                 self.logger.debug("Bridge closed remotely. Ending my run")
                 break
@@ -167,14 +177,17 @@ class ResponseSenderThread(Thread):
 
         self.bridge = bridge
 
-        #self.daemon = True
         #self.start()
 
     def run(self):
         while True:
-            data = self.response_pipe.receive()
+            try:
+                data = self.response_pipe.receive()
+            except KeyboardInterrupt:
+                self.logger.debug("KeyboardInterrupt received. Ending my run")
+                break
             if data == b'':  # TODO FIX
-                self.logger.debug("Pipe closed remotely")
+                self.logger.debug("Pipe closed remotely. Ending my run")
                 break
             self.logger.debug("Received response from pipe %r", data)
             self.logger.debug("Sending response through bridge")
@@ -200,7 +213,7 @@ class BackEndServer:
         self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
 
         self.logger.debug("Starting FileManager Process")
-        self.file_manager_process = FileManager(cache_size, request_p_in, request_p_out, response_p_in, response_p_out)
+        self.file_manager_process = FileManager(cache_size, request_p_out, response_p_in)
 
         self.logger.debug("Closing unused pipe fds")
         request_p_out.close()
@@ -211,6 +224,7 @@ class BackEndServer:
     def start(self):
         res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
         res_sender_thread.run()
+        self.shutdown()
 
     def shutdown(self):
         self.logger.debug("Closing Bridge")
