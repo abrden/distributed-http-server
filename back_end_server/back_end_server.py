@@ -195,8 +195,8 @@ class BackEndServer:
         self.logger = logging.getLogger("BackEndServer")
 
         self.logger.debug("Instantiating pipes")
-        request_p_out, request_p_in = Pipe()
-        response_p_out, response_p_in = Pipe()
+        request_p_out, request_p_in = Pipe(duplex=False)
+        response_p_out, response_p_in = Pipe(duplex=False)
 
         self.request_pipe = PipeWrite(request_p_in)
         self.response_pipe = PipeRead(response_p_out)

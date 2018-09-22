@@ -30,7 +30,7 @@ class PipeRead:
         self.mutex.acquire()
         try:
             data = self.fd.recv()
-        except OSError:
+        except (OSError, EOFError):
             self.mutex.release()
             return
         self.mutex.release()
