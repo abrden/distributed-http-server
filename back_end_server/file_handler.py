@@ -1,6 +1,7 @@
 import os
 from threading import Lock
 import pyhash
+import logging
 
 from .concurrency.ReadWriteLock import ReadWriteLock
 
@@ -65,6 +66,17 @@ class FileHandler:
             raise RuntimeError('File already exists')
         FileHandler.locks.acquire_write(path)
         FileHandler.ensure_dir(path)
+        file = open(path, 'w+')
+        file.write(content)
+        file.close()
+        FileHandler.locks.release_write(path)
+
+    @staticmethod
+    def update_file(path, content):
+        path = '.' + path
+        if not os.path.isfile(path):
+            raise IOError('File does not exist')
+        FileHandler.locks.acquire_write(path)
         file = open(path, 'w+')
         file.write(content)
         file.close()

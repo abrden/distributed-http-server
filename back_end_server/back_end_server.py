@@ -76,7 +76,14 @@ class FileManagerWorker(Thread):
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, 'Created\n')
 
         elif verb == 'PUT':
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
+            try:
+                FileHandler.update_file(path, body)
+
+            except IOError:
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
+
+            self.cache.loadEntry(path, body)
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, 'Updated\n')
 
         elif verb == 'DELETE':
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
@@ -107,7 +114,7 @@ class FileManager(Process):
 
     def run(self):
         self.logger.debug("Creating worker threads")
-        for _ in range(3 - 1):  # TODO Make customizable
+        for _ in range(3):  # TODO Make customizable
             worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
             self.workers.append(worker)
         for w in self.workers:

@@ -42,6 +42,8 @@ class HTTPResponseEncoder:
             h = 'HTTP/1.1 200 OK\r\n'
         elif code == 201:
             h = 'HTTP/1.1 201 Created\r\n'
+        elif code == 204:
+            h = 'HTTP/1.1 204 No Content\r\n'
         elif code == 400:
             h = 'HTTP/1.1 400 Bad Request\r\n'
         elif code == 404:
@@ -51,7 +53,7 @@ class HTTPResponseEncoder:
         elif code == 501:
             h = 'HTTP/1.1 501 Not Implemented\r\n'
         else:
-            raise RuntimeError  # TODO specific error
+            raise RuntimeError('Un recognized status code')  # TODO specific error
 
         # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
