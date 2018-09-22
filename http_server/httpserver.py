@@ -33,6 +33,13 @@ class HTTPRequestEncoder:
         return h.encode()
 
 
+class HTTPResponseDecoder:
+
+    @staticmethod
+    def decode_status_code(data):
+        return data.decode().split('\r\n', 1)[0].split(' ')[1]
+
+
 class HTTPResponseEncoder:
 
     @staticmethod

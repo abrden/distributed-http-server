@@ -1,11 +1,12 @@
 import uuid
+import datetime
 from threading import Thread
 from multiprocessing import Process, Pipe
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPRequestDecoder
+from http_server.httpserver import HTTPRequestDecoder, HTTPResponseDecoder
 from http_server.sockets import ClientsSocket, ServerSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
 from concurrency.pipes import PipeRead, PipeWrite
@@ -124,8 +125,10 @@ class ResponseSenderThread(Thread):
             RequestsPending.request_completed(req_id)
             self.logger.debug("Closing connection with client")
             conn.close()
+
             self.logger.debug("Sending log to audit")
-            self.logs_in.send("Req resolved")  # TODO send real req info
+            status = HTTPResponseDecoder.decode_status_code(data)
+            self.logs_in.send([status, "Req resolved"])  # TODO send real req info
 
 
 class AuditLogger(Process):
@@ -150,7 +153,8 @@ class AuditLogger(Process):
                 self.logger.debug("EOF received at the end of log pipe")
                 break
             self.logger.debug("Writing new log received %r", new_log)
-            self.file.write(new_log + "\r\n")
+            time = str(datetime.datetime.now())
+            self.file.write(time + " " + " ".join(new_log) + "\r\n")
 
         self.file.close()
         self.pipe_out.close()
