@@ -8,22 +8,12 @@ from .back_end_server import BackEndServer
 
 def main():
     logger = logging.getLogger("BE-Server")
+    logger.info("Starting BE Server")
 
-    #def graceful_shutdown(sig, dummy):
-    #    s.shutdown()
+    s = BackEndServer(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+    s.start()
 
-    #signal.signal(signal.SIGINT, graceful_shutdown)
-
-    try:
-        logger.info("Starting BE Server")
-        s = BackEndServer(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
-        s.start()
-
-    except:
-        s.shutdown()
-
-    finally:
-        logger.info("Done")
+    logger.info("Done")
 
 
 main()

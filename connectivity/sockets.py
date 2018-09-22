@@ -39,8 +39,12 @@ class ServerSocket:
 
 class ClientsSocket:
 
-    def __init__(self, conn):
+    def __init__(self, conn, addr):
         self.conn = conn
+        self.addr = addr
+
+    def address(self):
+        return self.addr
 
     def receive(self, bytes):
         return self.conn.recv(bytes)

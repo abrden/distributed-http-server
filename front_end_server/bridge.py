@@ -4,7 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.sockets import ServerSocket, ClientsSocket
+from connectivity.sockets import ServerSocket, ClientsSocket
 
 
 class BridgePDUDecoder:
@@ -44,7 +44,7 @@ class Bridge:
 
         connections.sort()
         for client in connections:
-            cs = ClientsSocket(client[1])
+            cs = ClientsSocket(client[1], client[0])
             self.be_conn.append(cs)
             self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 
@@ -77,9 +77,7 @@ class Bridge:
     def shutdown(self):
         self.logger.debug("Closing bridge")
         for conn in self.be_conn:
-            conn.shutdown()
             conn.close()
-        self.socket.shutdown()
         self.socket.close()
 
 

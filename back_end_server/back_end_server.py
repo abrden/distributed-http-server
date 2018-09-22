@@ -4,11 +4,11 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
+from connectivity.http import HTTPResponseEncoder, HTTPRequestDecoder
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from .file_handler import FileHandler
 from .bridge import Bridge
-from .concurrency.pipes import PipeRead, PipeWrite
+from concurrency.pipes import PipeRead, PipeWrite
 
 
 class FileManagerWorker(Thread):
@@ -22,13 +22,15 @@ class FileManagerWorker(Thread):
         self.request_pipe = request_pipe
         self.response_pipe = response_pipe
 
-        self.daemon = True
         self.start()
 
     def run(self):
         while True:
             self.logger.debug("Waiting for request at the end of req pipe")
             req = self.request_pipe.receive()
+            if req is None:
+                self.logger.debug("Pipe closed. Ending my run")
+                break
             self.logger.debug("Request received from pipe %r", req)
 
             verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
@@ -45,13 +47,13 @@ class FileManagerWorker(Thread):
     def fulfill_request(self, req_id, verb, path, body=None):
         if path == "/":
             self.logger.debug("Empty path: %r", path)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, verb, 'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == 'GET':
             if self.cache.has_entry(path):
                 self.logger.debug("Cache HIT: %r", path)
                 cached_response = self.cache.get_entry(path)
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, cached_response)
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, verb, cached_response)
             else:
                 self.logger.debug("Cache MISS: %r", path)
                 try:
@@ -60,45 +62,45 @@ class FileManagerWorker(Thread):
 
                 except IOError:
                     self.logger.debug("File not found: %r", path)
-                    return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
+                    return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
 
                 self.cache.load_entry(path, response_content)
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, response_content)
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, verb, response_content)
 
         elif verb == 'POST':
             try:
                 FileHandler.create_file(path, body)
 
             except RuntimeError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, verb, 'A file with that URI already exists\n')
 
             self.cache.load_entry(path, body)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, 'Created\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, verb, 'Created\n')
 
         elif verb == 'PUT':
             try:
                 FileHandler.update_file(path, body)
 
             except IOError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
 
             self.cache.load_entry(path, body)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204)
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, verb)
 
         elif verb == 'DELETE':
             try:
                 FileHandler.delete_file(path)
 
             except IOError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
 
             self.cache.delete_entry(path)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204)
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, verb)
 
 
 class FileManager(Process):
 
-    def __init__(self, cache_size, requests_p_in, requests_p_out, response_p_in, response_p_out):
+    def __init__(self, cache_size, requests_p_out, response_p_in):
         super(FileManager, self).__init__()
 
         self.logger = logging.getLogger('FileManager')
@@ -109,14 +111,8 @@ class FileManager(Process):
         self.request_pipe = PipeRead(requests_p_out)
         self.response_pipe = PipeWrite(response_p_in)
 
-        #### TODO Doesnt work if i close them
-        #self.logger.debug("Closing unused pipe fds")
-        #requests_p_in.close()
-        #response_p_out.close()
-
         self.workers = []
 
-        self.daemon = True
         self.start()
 
     def run(self):
@@ -124,12 +120,18 @@ class FileManager(Process):
         for _ in range(3):  # TODO Make customizable
             worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
             self.workers.append(worker)
-        for w in self.workers:
-            w.join()
+        try:
+            for w in self.workers:  #TODO FIXXXXXXXXXX
+                w.join()
+        except KeyboardInterrupt:
+            self.logger.debug("KeyboardInterrupt received. Ending my run")
+            self.shutdown()
 
     def shutdown(self):
         self.request_pipe.close()
         self.response_pipe.close()
+        for w in self.workers:
+            w.join()
 
 
 class RequestReceiverThread(Thread):  # Name in terms of the client
@@ -142,12 +144,15 @@ class RequestReceiverThread(Thread):  # Name in terms of the client
 
         self.bridge = bridge
 
-        self.daemon = True
         self.start()
 
     def run(self):
         while True:
-            data = self.bridge.receive_request()
+            try:
+                data = self.bridge.receive_request()
+            except (KeyboardInterrupt, OSError):
+                self.logger.debug("KeyboardInterrupt received. Ending my run")
+                break
             if data == b'':
                 self.logger.debug("Bridge closed remotely. Ending my run")
                 break
@@ -167,14 +172,17 @@ class ResponseSenderThread(Thread):
 
         self.bridge = bridge
 
-        #self.daemon = True
         #self.start()
 
     def run(self):
         while True:
-            data = self.response_pipe.receive()
+            try:
+                data = self.response_pipe.receive()
+            except KeyboardInterrupt:
+                self.logger.debug("KeyboardInterrupt received. Ending my run")
+                break
             if data == b'':  # TODO FIX
-                self.logger.debug("Pipe closed remotely")
+                self.logger.debug("Pipe closed remotely. Ending my run")
                 break
             self.logger.debug("Received response from pipe %r", data)
             self.logger.debug("Sending response through bridge")
@@ -187,8 +195,8 @@ class BackEndServer:
         self.logger = logging.getLogger("BackEndServer")
 
         self.logger.debug("Instantiating pipes")
-        request_p_out, request_p_in = Pipe()
-        response_p_out, response_p_in = Pipe()
+        request_p_out, request_p_in = Pipe(duplex=False)
+        response_p_out, response_p_in = Pipe(duplex=False)
 
         self.request_pipe = PipeWrite(request_p_in)
         self.response_pipe = PipeRead(response_p_out)
@@ -200,7 +208,7 @@ class BackEndServer:
         self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
 
         self.logger.debug("Starting FileManager Process")
-        self.file_manager_process = FileManager(cache_size, request_p_in, request_p_out, response_p_in, response_p_out)
+        self.file_manager_process = FileManager(cache_size, request_p_out, response_p_in)
 
         self.logger.debug("Closing unused pipe fds")
         request_p_out.close()
@@ -211,6 +219,7 @@ class BackEndServer:
     def start(self):
         res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
         res_sender_thread.run()
+        self.shutdown()
 
     def shutdown(self):
         self.logger.debug("Closing Bridge")
