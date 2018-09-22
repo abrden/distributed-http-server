@@ -81,3 +81,12 @@ class FileHandler:
         file.write(content)
         file.close()
         FileHandler.locks.release_write(path)
+
+    @staticmethod
+    def delete_file(path):
+        path = '.' + path
+        if not os.path.isfile(path):
+            raise IOError('File does not exist')
+        FileHandler.locks.acquire_write(path)
+        os.remove(path)
+        FileHandler.locks.release_write(path)
