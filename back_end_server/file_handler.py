@@ -3,7 +3,7 @@ from threading import Lock
 import pyhash
 import logging
 
-from .concurrency.ReadWriteLock import ReadWriteLock
+from concurrency.ReadWriteLock import ReadWriteLock
 
 
 class FileSystemLock:

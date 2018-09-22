@@ -12,6 +12,7 @@ RUN pip3 install -r requirements.txt
 
 COPY ./back_end_server /be/be_server
 COPY ./http_server /be/http_server
+COPY ./concurrency /be/concurrency
 
 ENV CACHE_SIZE 0
 

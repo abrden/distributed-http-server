@@ -12,6 +12,7 @@ RUN pip3 install -r requirements.txt
 
 COPY ./front_end_server /fe/fe_server
 COPY ./http_server /fe/http_server
+COPY ./concurrency /fe/concurrency
 
 ENV BE_NUM 1
 

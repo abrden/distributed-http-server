@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 from http_server.httpserver import HTTPRequestDecoder
 from http_server.sockets import ClientsSocket, ServerSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
-
+from concurrency.pipes import PipeRead, PipeWrite
 
 class RequestsPending:
     clients = {}
@@ -125,7 +125,7 @@ class ResponseSenderThread(Thread):
             self.logger.debug("Closing connection with client")
             conn.close()
             self.logger.debug("Sending log to audit")
-            self.logs_in.send("Req resolved")
+            self.logs_in.send("Req resolved")  # TODO send real req info
 
 
 class AuditLogger(Process):
@@ -142,7 +142,7 @@ class AuditLogger(Process):
         self.file.write("LOG START\r\n")
         while True:
             try:
-                new_log = self.pipe_out.recv()
+                new_log = self.pipe_out.receive()
             except KeyboardInterrupt:
                 self.logger.debug("KeyboardInterrupt received. Ending my run")
                 break
@@ -166,16 +166,19 @@ class FrontEndServer:
         self.http_server = HTTPServer(host, port, RequestReceiverThread, self.bridge)
 
         self.logger.debug("Creating Pipe for audit logs")
-        logs_out, self.logs_in = Pipe(duplex=False)
+        logs_out, logs_in = Pipe(duplex=False)
+
+        self.logs_in_pipe = PipeWrite(logs_in)
+        logs_out_pipe = PipeRead(logs_out)
 
         self.servers = servers
         self.responders = []
         self.logger.debug("Creating ResponseSender Threads")
         for i in range(self.servers):
-            responder = ResponseSenderThread(self.bridge, i, self.logs_in)
+            responder = ResponseSenderThread(self.bridge, i, self.logs_in_pipe)
             self.responders.append(responder)
         self.logger.debug("Creating AuditLogger Process")
-        self.audit_logger = AuditLogger(logs_out)
+        self.audit_logger = AuditLogger(logs_out_pipe)
 
         self.logger.debug("Closing logs out pipe fd")
         logs_out.close()
@@ -195,6 +198,6 @@ class FrontEndServer:
             self.logger.debug("Joining ResponseSenderThread-%r", i)
             self.responders[i].join()
         self.logger.debug("Closing logs in pipe fd")
-        self.logs_in.close()
+        self.logs_in_pipe.close()
         self.logger.debug("Joining AuditLogger Process")
         self.audit_logger.join()

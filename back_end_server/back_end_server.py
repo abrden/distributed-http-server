@@ -8,7 +8,7 @@ from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from .file_handler import FileHandler
 from .bridge import Bridge
-from .concurrency.pipes import PipeRead, PipeWrite
+from concurrency.pipes import PipeRead, PipeWrite
 
 
 class FileManagerWorker(Thread):
