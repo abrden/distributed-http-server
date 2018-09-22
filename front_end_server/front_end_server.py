@@ -1,5 +1,4 @@
 import uuid
-import datetime
 from threading import Thread
 from multiprocessing import Process, Pipe
 import logging
@@ -41,7 +40,7 @@ class RequestReceiverThread(Thread):
         self.start()
 
     def run(self):
-        conn = ClientsSocket(self.conn)
+        conn = ClientsSocket(self.conn, self.address)
         self.logger.debug("Connected client %r at %r", conn, self.address)
 
         try:
@@ -127,8 +126,7 @@ class ResponseSenderThread(Thread):
             conn.close()
 
             self.logger.debug("Sending log to audit")
-            status = HTTPResponseDecoder.decode_status_code(data)
-            self.logs_in.send([status, "Req resolved"])  # TODO send real req info
+            self.logs_in.send([conn.address(), data])
 
 
 class AuditLogger(Process):
@@ -145,16 +143,16 @@ class AuditLogger(Process):
         self.file.write("LOG START\r\n")
         while True:
             try:
-                new_log = self.pipe_out.receive()
+                [addr, data] = self.pipe_out.receive()
             except KeyboardInterrupt:
                 self.logger.debug("KeyboardInterrupt received. Ending my run")
                 break
             except EOFError:
                 self.logger.debug("EOF received at the end of log pipe")
                 break
-            self.logger.debug("Writing new log received %r", new_log)
-            time = str(datetime.datetime.now())
-            self.file.write(time + " " + " ".join(new_log) + "\r\n")
+            self.logger.debug("Writing new log received")
+            status, date, request_method = HTTPResponseDecoder.decode(data)
+            self.file.write(date + " " + addr[0] + ":" + str(addr[1]) + " " + request_method + " " + status + " " + "\r\n")
 
         self.file.close()
         self.pipe_out.close()

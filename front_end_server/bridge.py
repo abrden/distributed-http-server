@@ -44,7 +44,7 @@ class Bridge:
 
         connections.sort()
         for client in connections:
-            cs = ClientsSocket(client[1])
+            cs = ClientsSocket(client[1], client[0])
             self.be_conn.append(cs)
             self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 

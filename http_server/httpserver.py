@@ -1,11 +1,5 @@
-import threading
 import time
 import email
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-
-from .sockets import ServerSocket
 
 
 class HTTPRequestDecoder:
@@ -36,14 +30,18 @@ class HTTPRequestEncoder:
 class HTTPResponseDecoder:
 
     @staticmethod
-    def decode_status_code(data):
-        return data.decode().split('\r\n', 1)[0].split(' ')[1]
+    def decode(data):
+        splitted = data.decode().split('\r\n', 3)
+        status = splitted[0].split(' ', 1)[1]
+        date = splitted[1].split(' ', 1)[1]
+        method = splitted[2].split(' ')[1]
+        return status, date, method
 
 
 class HTTPResponseEncoder:
 
     @staticmethod
-    def header(code):
+    def header(code, verb):
         h = ''
         if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
@@ -65,6 +63,7 @@ class HTTPResponseEncoder:
         # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
+        h += 'Request-Type: ' + verb + '\r\n'
         h += 'Server: Distributed-HTTP-Server\r\n'
         h += 'Content-Type: application/json\r\n'
         h += 'Connection: close\r\n\r\n'
@@ -72,41 +71,8 @@ class HTTPResponseEncoder:
         return h.encode()
 
     @staticmethod
-    def encode(code, content=None):
-        header = HTTPResponseEncoder.header(code)
+    def encode(code, verb, content=None):
+        header = HTTPResponseEncoder.header(code, verb)
         if content:
             return header + content.encode()
         return header
-
-
-class HTTPServer:
-
-    def __init__(self, host, port, conn_handler):
-        self.logger = logging.getLogger("HTTPServer")
-        self.socket = ServerSocket(host, port)
-        self.conn_handler = conn_handler
-
-    def wait_for_connections(self):
-        while True:
-            self.logger.debug("Awaiting new connection")
-            try:
-                conn, addr = self.socket.accept_client()
-            except OSError:  # SIGINT received
-                return
-            self.logger.debug("Connection accepted")
-            worker = threading.Thread(target=self.conn_handler.handle, args=(conn, addr))
-            worker.setDaemon(True)
-            worker.start()
-            self.logger.debug("Started worker thread")
-
-    def shutdown(self):
-        self.logger.debug("Closing socket")
-        self.socket.shutdown()
-        self.socket.close()
-
-        main_thread = threading.current_thread()
-        for thread in threading.enumerate():
-            if thread is main_thread:
-                continue
-            self.logger.debug('Joining %s', thread.getName())
-            thread.join()
