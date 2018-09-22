@@ -48,9 +48,9 @@ class FileManagerWorker(Thread):
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, 'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == 'GET':
-            if self.cache.hasEntry(path):
+            if self.cache.has_entry(path):
                 self.logger.debug("Cache HIT: %r", path)
-                cached_response = self.cache.getEntry(path)
+                cached_response = self.cache.get_entry(path)
                 return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, cached_response)
             else:
                 self.logger.debug("Cache MISS: %r", path)
@@ -62,7 +62,7 @@ class FileManagerWorker(Thread):
                     self.logger.debug("File not found: %r", path)
                     return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
 
-                self.cache.loadEntry(path, response_content)
+                self.cache.load_entry(path, response_content)
                 return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, response_content)
 
         elif verb == 'POST':
@@ -72,7 +72,7 @@ class FileManagerWorker(Thread):
             except RuntimeError:
                 return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, 'A file with that URI already exists\n')
 
-            self.cache.loadEntry(path, body)
+            self.cache.load_entry(path, body)
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, 'Created\n')
 
         elif verb == 'PUT':
@@ -82,11 +82,18 @@ class FileManagerWorker(Thread):
             except IOError:
                 return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
 
-            self.cache.loadEntry(path, body)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, 'Updated\n')
+            self.cache.load_entry(path, body)
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204)
 
         elif verb == 'DELETE':
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(501, 'Not implemented\n')
+            try:
+                FileHandler.delete_file(path)
+
+            except IOError:
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, 'File not found\n')
+
+            self.cache.delete_entry(path)
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204)
 
 
 class FileManager(Process):

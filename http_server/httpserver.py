@@ -58,7 +58,7 @@ class HTTPResponseEncoder:
         # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
-        h += 'Server: BE-HTTP-Server\r\n'
+        h += 'Server: Distributed-HTTP-Server\r\n'
         h += 'Content-Type: application/json\r\n'
         h += 'Connection: close\r\n\r\n'
 
