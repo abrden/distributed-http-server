@@ -4,7 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.sockets import ServerSocket, ClientsSocket
+from connectivity.sockets import ServerSocket, ClientsSocket
 
 
 class BridgePDUDecoder:

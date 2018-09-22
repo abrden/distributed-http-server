@@ -4,7 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPResponseEncoder, HTTPRequestDecoder
+from connectivity.http import HTTPResponseEncoder, HTTPRequestDecoder
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from .file_handler import FileHandler
 from .bridge import Bridge

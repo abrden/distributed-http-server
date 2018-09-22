@@ -39,7 +39,7 @@ class ServerSocket:
 
 class ClientsSocket:
 
-    def __init__(self, conn, addr): #REFACTOR CLASSES THAT USE THIS
+    def __init__(self, conn, addr):
         self.conn = conn
         self.addr = addr
 

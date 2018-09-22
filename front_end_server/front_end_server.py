@@ -5,8 +5,8 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.httpserver import HTTPRequestDecoder, HTTPResponseDecoder
-from http_server.sockets import ClientsSocket, ServerSocket
+from connectivity.http import HTTPRequestDecoder, HTTPResponseDecoder
+from connectivity.sockets import ClientsSocket, ServerSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
 from concurrency.pipes import PipeRead, PipeWrite
 

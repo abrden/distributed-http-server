@@ -1,7 +1,7 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from http_server.sockets import ClientSocket
+from connectivity.sockets import ClientSocket
 
 
 class Bridge:
