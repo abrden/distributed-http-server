@@ -83,6 +83,20 @@ class HTTPResponseEncoder:
         return header
 
 
+def receive_HTTP_packet(conn):
+    logger = logging.getLogger("SOCKET")
+    data = b''
+    while not HTTPValidator.is_HTTP_packet(data):
+        logger.debug("RECEIVING")
+        new_data = conn.recv(1024)
+        if new_data == b'':
+            return data
+        data += new_data
+        logger.debug("DATA: %r", data)
+    logger.debug("FINAL DATA: %r", data)
+    return data
+
+
 class HTTPValidator:
 
     @staticmethod

@@ -1,21 +1,6 @@
 import socket
-import logging
 
-from .http import HTTPValidator
-
-
-def receive_HTTP_packet(conn):
-    logger = logging.getLogger("SOCKET")
-    data = b''
-    while not HTTPValidator.is_HTTP_packet(data):
-        logger.debug("RECEIVING")
-        new_data = conn.recv(1024)
-        if new_data == b'':
-            return data
-        data += new_data
-        logger.debug("DATA: %r", data)
-    logger.debug("FINAL DATA: %r", data)
-    return data
+from .http import receive_HTTP_packet
 
 
 class ClientSocket:
@@ -30,9 +15,6 @@ class ClientSocket:
     def send(self, data):
         return self.s.sendall(data)
 
-    def shutdown(self):
-        return self.s.shutdown(socket.SHUT_RDWR)
-
     def close(self):
         return self.s.close()
 
@@ -46,9 +28,6 @@ class ServerSocket:
 
     def accept_client(self):
         return self.s.accept()
-
-    def shutdown(self):
-        return self.s.shutdown(socket.SHUT_RDWR)
 
     def close(self):
         return self.s.close()
@@ -68,9 +47,6 @@ class ClientsSocket:
 
     def send(self, data):
         return self.conn.sendall(data)
-
-    def shutdown(self):
-        return self.conn.shutdown(socket.SHUT_RDWR)
 
     def close(self):
         return self.conn.close()
