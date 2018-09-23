@@ -1,4 +1,7 @@
 import socket
+import logging
+
+from .http import HTTPValidator
 
 
 class ClientSocket:
@@ -46,8 +49,15 @@ class ClientsSocket:
     def address(self):
         return self.addr
 
-    def receive(self, bytes):
-        return self.conn.recv(bytes)
+    def receive(self):
+        logger = logging.getLogger("SOCKET")
+        data = b''
+        while not HTTPValidator.is_HTTP_packet(data):
+            logger.debug("RECEIVING")
+            data += self.conn.recv(1024)
+            logger.debug("DATA: %r", data)
+        logger.debug("FINAL DATA: %r", data)
+        return data
 
     def send(self, data):
         return self.conn.sendall(data)

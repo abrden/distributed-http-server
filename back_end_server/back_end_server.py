@@ -41,14 +41,13 @@ class FileManagerWorker(Thread):
     def fulfill_request(self, req_id, verb, path, body=None):
         if path == "/":
             self.logger.debug("Empty path: %r", path)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, verb,
-                                                                           'URI should be /{origin}/{entity}/{id}\n')
+            return HTTPResponseEncoder.encode(400, verb, req_id, 'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == 'GET':
             if self.cache.has_entry(path):
                 self.logger.debug("Cache HIT: %r", path)
                 cached_response = self.cache.get_entry(path)
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, verb, cached_response)
+                return HTTPResponseEncoder.encode(200, verb, req_id, cached_response)
             else:
                 self.logger.debug("Cache MISS: %r", path)
                 try:
@@ -57,41 +56,40 @@ class FileManagerWorker(Thread):
 
                 except IOError:
                     self.logger.debug("File not found: %r", path)
-                    return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
+                    return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
 
                 self.cache.load_entry(path, response_content)
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(200, verb, response_content)
+                return HTTPResponseEncoder.encode(200, verb, req_id, response_content)
 
         elif verb == 'POST':
             try:
                 FileHandler.create_file(path, body)
 
             except RuntimeError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, verb,
-                                                                               'A file with that URI already exists\n')
+                return HTTPResponseEncoder.encode(409, verb, req_id, 'A file with that URI already exists\n')
 
             self.cache.load_entry(path, body)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, verb, 'Created\n')
+            return HTTPResponseEncoder.encode(201, verb, req_id, 'Created\n')
 
         elif verb == 'PUT':
             try:
                 FileHandler.update_file(path, body)
 
             except IOError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
+                return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
 
             self.cache.load_entry(path, body)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, verb)
+            return HTTPResponseEncoder.encode(204, verb, req_id)
 
         elif verb == 'DELETE':
             try:
                 FileHandler.delete_file(path)
 
             except IOError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(404, verb, 'File not found\n')
+                return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
 
             self.cache.delete_entry(path)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(204, verb)
+            return HTTPResponseEncoder.encode(204, verb, req_id)
 
 
 class FileManager(Process):

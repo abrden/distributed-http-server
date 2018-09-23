@@ -1,5 +1,6 @@
 import time
 import email
+import logging
 
 
 class HTTPRequestDecoder:
@@ -41,7 +42,7 @@ class HTTPResponseDecoder:
 class HTTPResponseEncoder:
 
     @staticmethod
-    def header(code, verb):
+    def header(code, verb, req_id, content_len=None):
         h = ''
         if code == 200:
             h = 'HTTP/1.1 200 OK\r\n'
@@ -64,6 +65,9 @@ class HTTPResponseEncoder:
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
         h += 'Request-Type: ' + verb + '\r\n'
+        h += 'Request-Id: ' + req_id + '\r\n'
+        if content_len is not None:
+            h += 'Content-Length: ' + str(content_len) + '\r\n'
         h += 'Server: Distributed-HTTP-Server\r\n'
         h += 'Content-Type: application/json\r\n'
         h += 'Connection: close\r\n\r\n'
@@ -71,8 +75,30 @@ class HTTPResponseEncoder:
         return h.encode()
 
     @staticmethod
-    def encode(code, verb, content=None):
-        header = HTTPResponseEncoder.header(code, verb)
+    def encode(code, verb, req_id, content=None):
         if content:
+            header = HTTPResponseEncoder.header(code, verb, req_id, len(content))
             return header + content.encode()
+        header = HTTPResponseEncoder.header(code, verb, req_id)
         return header
+
+
+class HTTPValidator:
+
+    @staticmethod
+    def is_HTTP_packet(data):
+        logger = logging.getLogger("HTTP")
+
+        ans = data.decode().split('\r\n\r\n')
+        if len(ans) == 2 and ans[1] == "":
+            ans = [ans[0]]
+        logger.debug("ANS %r", ans)
+        head = ans[0].split('\r\n', 1)
+        logger.debug("HEAD %r", head)
+        if len(head) < 2:
+            return False
+        message = email.message_from_string(head[1])
+        headers = dict(message.items())
+        logger.debug("HEADERS %r", headers)
+        return 'Content-Length' in headers and int(headers['Content-Length']) == len(ans[1]) \
+               or 'Content-Length' not in headers and len(ans) == 1

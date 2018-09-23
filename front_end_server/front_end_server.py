@@ -45,7 +45,7 @@ class RequestReceiverThread(Thread):
         self.logger.debug("Connected client %r at %r", conn, self.address)
 
         try:
-            data = conn.receive(1024)  # TODO receive up to request ending
+            data = conn.receive()  # TODO receive up to request ending
         except KeyboardInterrupt:
             self.logger.debug("KeyboardInterrupt received. Ending my run")
             return

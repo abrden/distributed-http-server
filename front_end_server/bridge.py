@@ -1,5 +1,6 @@
 from threading import Lock
 import pyhash
+import email
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -11,8 +12,14 @@ class BridgePDUDecoder:
 
     @staticmethod
     def decode(response):
-        req_id, data = response.decode().split('\r\n', 1)
-        return req_id, data.encode()
+        request_text = response.decode()
+
+        request_line, rest = request_text.split('\r\n', 1)
+        headers_alone, body = rest.split('\r\n\r\n', 1)
+        message = email.message_from_string(headers_alone)
+        headers = dict(message.items())
+
+        return headers['Request-Id'], response
 
 
 class BridgePDUEncoder:
@@ -68,7 +75,7 @@ class Bridge:
         self.logger.debug("Waiting for %r response", be_num)
         conn = self.be_conn[be_num]
         self.be_conn_locks[be_num][1].acquire()
-        content = conn.receive(1024)  # TODO Receive until ???
+        content = conn.receive()  # TODO Receive until ???
         self.be_conn_locks[be_num][1].release()
 
         self.logger.debug("Received %r response from %r", content, be_num)
