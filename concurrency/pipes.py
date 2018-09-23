@@ -30,7 +30,7 @@ class PipeRead:
         self.mutex.acquire()
         try:
             data = self.fd.recv()
-        except (OSError, EOFError):
+        except (OSError, EOFError, KeyboardInterrupt):
             self.mutex.release()
             return
         self.mutex.release()

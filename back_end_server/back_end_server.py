@@ -13,41 +13,36 @@ from concurrency.pipes import PipeRead, PipeWrite
 
 class FileManagerWorker(Thread):
 
-    def __init__(self, request_pipe, response_pipe, cache):
+    def __init__(self, response_pipe, cache, req):
         super(FileManagerWorker, self).__init__()
 
         self.logger = logging.getLogger('FileManagerWorker-%r' % self.getName())
 
         self.cache = cache
-        self.request_pipe = request_pipe
         self.response_pipe = response_pipe
+        self.req = req
 
         self.start()
 
     def run(self):
-        while True:
-            self.logger.debug("Waiting for request at the end of req pipe")
-            req = self.request_pipe.receive()
-            if req is None:
-                self.logger.debug("Pipe closed. Ending my run")
-                break
-            self.logger.debug("Request received from pipe %r", req)
+        self.logger.debug("Working on request %r", self.req)
 
-            verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
-            self.logger.debug("Verb %r", verb)
-            self.logger.debug("Path %r", path)
-            self.logger.debug("Version %r", version)
-            self.logger.debug("Headers %r", headers)
-            self.logger.debug("Body %r", body)
+        verb, path, version, headers, body = HTTPRequestDecoder.decode(self.req)
+        self.logger.debug("Verb %r", verb)
+        self.logger.debug("Path %r", path)
+        self.logger.debug("Version %r", version)
+        self.logger.debug("Headers %r", headers)
+        self.logger.debug("Body %r", body)
 
-            res = self.fulfill_request(headers['Request-Id'], verb, path, body)
-            self.logger.debug("Sending response through pipe %r", res)
-            self.response_pipe.send(res)
+        res = self.fulfill_request(headers['Request-Id'], verb, path, body)
+        self.logger.debug("Sending response through pipe %r", res)
+        self.response_pipe.send(res)
 
     def fulfill_request(self, req_id, verb, path, body=None):
         if path == "/":
             self.logger.debug("Empty path: %r", path)
-            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, verb, 'URI should be /{origin}/{entity}/{id}\n')
+            return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(400, verb,
+                                                                           'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == 'GET':
             if self.cache.has_entry(path):
@@ -72,7 +67,8 @@ class FileManagerWorker(Thread):
                 FileHandler.create_file(path, body)
 
             except RuntimeError:
-                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, verb, 'A file with that URI already exists\n')
+                return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(409, verb,
+                                                                               'A file with that URI already exists\n')
 
             self.cache.load_entry(path, body)
             return (req_id + '\r\n').encode() + HTTPResponseEncoder.encode(201, verb, 'Created\n')
@@ -116,20 +112,23 @@ class FileManager(Process):
         self.start()
 
     def run(self):
-        self.logger.debug("Creating worker threads")
-        for _ in range(3):  # TODO Make customizable
-            worker = FileManagerWorker(self.request_pipe, self.response_pipe, self.cache)
+        while True:
+            self.logger.debug("Waiting for request at the end of req pipe")
+            req = self.request_pipe.receive()
+            if req is None:
+                self.logger.debug("Pipe closed. Ending my run")
+                break
+            self.logger.debug("Creating a worker to take the request")
+            worker = FileManagerWorker(self.response_pipe, self.cache, req)
             self.workers.append(worker)
-        try:
-            for w in self.workers:  #TODO FIXXXXXXXXXX
-                w.join()
-        except KeyboardInterrupt:
-            self.logger.debug("KeyboardInterrupt received. Ending my run")
-            self.shutdown()
+
+        self.shutdown()
 
     def shutdown(self):
+        self.logger.debug("Closing pipes")
         self.request_pipe.close()
         self.response_pipe.close()
+        self.logger.debug("Joining my workers")
         for w in self.workers:
             w.join()
 
@@ -172,16 +171,12 @@ class ResponseSenderThread(Thread):
 
         self.bridge = bridge
 
-        #self.start()
+        # self.start()
 
     def run(self):
         while True:
-            try:
-                data = self.response_pipe.receive()
-            except KeyboardInterrupt:
-                self.logger.debug("KeyboardInterrupt received. Ending my run")
-                break
-            if data == b'':  # TODO FIX
+            data = self.response_pipe.receive()
+            if data is None:
                 self.logger.debug("Pipe closed remotely. Ending my run")
                 break
             self.logger.debug("Received response from pipe %r", data)
@@ -214,7 +209,7 @@ class BackEndServer:
         request_p_out.close()
         response_p_in.close()
 
-        #self.res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
+        # self.res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
 
     def start(self):
         res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
@@ -229,6 +224,6 @@ class BackEndServer:
         self.response_pipe.close()
         self.logger.debug("Joining RequestReceiver Thread")
         self.req_receiver_thread.join()
-        #self.res_sender_thread.join()
+        # self.res_sender_thread.join()
         self.logger.debug("Joining FileManager Process")
         self.file_manager_process.join()

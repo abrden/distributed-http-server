@@ -10,6 +10,7 @@ from connectivity.sockets import ClientsSocket, ServerSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
 from concurrency.pipes import PipeRead, PipeWrite
 
+
 class RequestsPending:
     clients = {}
 
@@ -142,14 +143,11 @@ class AuditLogger(Process):
     def run(self):
         self.file.write("LOG START\r\n")
         while True:
-            try:
-                [addr, data] = self.pipe_out.receive()
-            except KeyboardInterrupt:
-                self.logger.debug("KeyboardInterrupt received. Ending my run")
-                break
-            except EOFError:
+            new_log = self.pipe_out.receive()
+            if new_log is None:
                 self.logger.debug("EOF received at the end of log pipe")
                 break
+            [addr, data] = new_log
             self.logger.debug("Writing new log received")
             status, date, request_method = HTTPResponseDecoder.decode(data)
             self.file.write(date + " " + addr[0] + ":" + str(addr[1]) + " " + request_method + " " + status + " " + "\r\n")
