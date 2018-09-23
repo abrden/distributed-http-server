@@ -45,7 +45,7 @@ class Bridge:
         self.logger.debug("Connecting with BE servers")
         connections = []
         for i in range(self.servers):
-            conn, addr = self.socket.accept_client()  # TODO Van a quedar ordenados distinto en cada arranque
+            conn, addr = self.socket.accept_client()
             self.logger.debug("Connection accepted %r" % (addr,))
             connections.append((addr, conn))
 
@@ -75,7 +75,7 @@ class Bridge:
         self.logger.debug("Waiting for %r response", be_num)
         conn = self.be_conn[be_num]
         self.be_conn_locks[be_num][1].acquire()
-        content = conn.receive()  # TODO Receive until ???
+        content = conn.receive()
         self.be_conn_locks[be_num][1].release()
 
         self.logger.debug("Received %r response from %r", content, be_num)

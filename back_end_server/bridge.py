@@ -13,7 +13,7 @@ class Bridge:
 
     def receive_request(self):
         self.logger.debug("Waiting for request")
-        req = self.socket.receive(1024)
+        req = self.socket.receive()
         self.logger.debug("Request received: %r", req)
         return req
 
