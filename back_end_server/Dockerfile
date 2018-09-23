@@ -16,4 +16,4 @@ COPY ./concurrency /be/concurrency
 
 ENTRYPOINT [ "python3" ]
 
-CMD [ "-m", "be_server", "front", "5001", "0" ]
+CMD [ "-m", "be_server" ]
