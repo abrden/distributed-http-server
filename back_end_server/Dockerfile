@@ -14,8 +14,6 @@ COPY ./back_end_server /be/be_server
 COPY ./connectivity /be/connectivity
 COPY ./concurrency /be/concurrency
 
-ENV CACHE_SIZE 0
-
 ENTRYPOINT [ "python3" ]
 
 CMD [ "-m", "be_server", "front", "5001", "0" ]
