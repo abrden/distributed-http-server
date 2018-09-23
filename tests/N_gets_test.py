@@ -8,7 +8,7 @@ results = list(range(N))
 
 
 def get_req(i):
-    r = requests.get('https://api.github.com/user')
+    r = requests.get('http://127.0.0.1:5000/oso/osa/2')
     results[i] = r.status_code
     print(i, "I requested")
 

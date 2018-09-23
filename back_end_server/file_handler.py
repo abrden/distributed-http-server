@@ -1,7 +1,6 @@
 import os
 from threading import Lock
 import pyhash
-import logging
 
 from concurrency.ReadWriteLock import ReadWriteLock
 
@@ -10,7 +9,7 @@ class FileSystemLock:
 
     def __init__(self):
         self.hasher = pyhash.super_fast_hash()
-        self.file_locks_len = 30  # TODO make customizable
+        self.file_locks_len = int(os.environ['LOCKS_POOL_SIZE'])
         self.mutex = Lock()
         self.file_locks = []
         for i in range(self.file_locks_len):

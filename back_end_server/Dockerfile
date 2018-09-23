@@ -11,7 +11,7 @@ RUN pip3 install --upgrade pip setuptools
 RUN pip3 install -r requirements.txt
 
 COPY ./back_end_server /be/be_server
-COPY ./http_server /be/http_server
+COPY ./connectivity /be/connectivity
 COPY ./concurrency /be/concurrency
 
 ENV CACHE_SIZE 0
