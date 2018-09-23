@@ -9,7 +9,10 @@ def receive_HTTP_packet(conn):
     data = b''
     while not HTTPValidator.is_HTTP_packet(data):
         logger.debug("RECEIVING")
-        data += conn.recv(1024)
+        new_data = conn.recv(1024)
+        if new_data == b'':
+            return data
+        data += new_data
         logger.debug("DATA: %r", data)
     logger.debug("FINAL DATA: %r", data)
     return data
