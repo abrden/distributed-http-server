@@ -84,7 +84,7 @@ class HTTPResponseEncoder:
 
 
 def receive_HTTP_packet(conn):
-    logger = logging.getLogger("SOCKET")
+    logger = logging.getLogger("SOCKET")  # TODO delete logs
     data = b''
     while not HTTPValidator.is_HTTP_packet(data):
         logger.debug("RECEIVING")
@@ -101,7 +101,7 @@ class HTTPValidator:
 
     @staticmethod
     def is_HTTP_packet(data):
-        logger = logging.getLogger("HTTP")
+        logger = logging.getLogger("HTTP")  # TODO delete logs
 
         ans = data.decode().split('\r\n\r\n')
         if len(ans) == 2 and ans[1] == "":
