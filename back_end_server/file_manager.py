@@ -66,11 +66,6 @@ class FileManagerWorker(Thread):
         self.logger.info("Working on request %r", self.req)
 
         verb, path, version, headers, body = HTTPRequestDecoder.decode(self.req)
-        self.logger.debug("Verb %r", verb)
-        self.logger.debug("Path %r", path)
-        self.logger.debug("Version %r", version)
-        self.logger.debug("Headers %r", headers)
-        self.logger.debug("Body %r", body)
 
         res = self.request_handler.handle(headers['Request-Id'], verb, path, body)
         self.logger.info("Sending response through pipe %r", res)

@@ -35,11 +35,6 @@ class RequestReceiverThread(Thread):
         self.logger.debug("Received data from client %r", data)
 
         verb, path, version, headers, body = HTTPRequestDecoder.decode(data)
-        self.logger.debug("Verb %r", verb)
-        self.logger.debug("Path %r", path)
-        self.logger.debug("Version %r", version)
-        self.logger.debug("Headers %r", headers)
-        self.logger.debug("Body %r", body)
 
         self.logger.debug("Adding client %r to RequestsPending", conn)
         req_id = RequestsPending.new_request(conn)
