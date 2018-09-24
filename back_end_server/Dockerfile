@@ -7,13 +7,13 @@ COPY ./back_end_server/requirements.txt /be/requirements.txt
 
 WORKDIR /be
 
+RUN pip3 install --upgrade pip setuptools
 RUN pip3 install -r requirements.txt
 
 COPY ./back_end_server /be/be_server
-COPY ./http_server /be/http_server
-
-ENV CACHE_SIZE 0
+COPY ./connectivity /be/connectivity
+COPY ./concurrency /be/concurrency
 
 ENTRYPOINT [ "python3" ]
 
-CMD [ "-m", "be_server", "front", "5001", "0" ]
+CMD [ "-m", "be_server" ]

@@ -1,5 +1,7 @@
 import socket
 
+from .http import receive_HTTP_packet
+
 
 class ClientSocket:
 
@@ -7,8 +9,8 @@ class ClientSocket:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((host, port))
 
-    def receive(self, bytes):
-        return self.s.recv(bytes)
+    def receive(self):
+        return receive_HTTP_packet(self.s)
 
     def send(self, data):
         return self.s.sendall(data)
@@ -27,20 +29,21 @@ class ServerSocket:
     def accept_client(self):
         return self.s.accept()
 
-    def shutdown(self):
-        return self.s.shutdown(socket.SHUT_RDWR)
-
     def close(self):
         return self.s.close()
 
 
 class ClientsSocket:
 
-    def __init__(self, conn):
+    def __init__(self, conn, addr):
         self.conn = conn
+        self.addr = addr
 
-    def receive(self, bytes):
-        return self.conn.recv(bytes)
+    def address(self):
+        return self.addr
+
+    def receive(self):
+        return receive_HTTP_packet(self.conn)
 
     def send(self, data):
         return self.conn.sendall(data)
