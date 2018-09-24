@@ -56,9 +56,7 @@ class Bridge:
             self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 
     def where_to(self, path):
-        location = path.split('/')[1:]
-        origin = location[0]
-        return self.hasher(origin) % self.servers
+        return self.hasher(path) % self.servers
 
     def send_request(self, path, data):
         be_num = self.where_to(path)

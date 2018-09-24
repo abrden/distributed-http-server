@@ -1,6 +1,5 @@
 import time
 import email
-import logging
 
 
 class HTTPRequestDecoder:
@@ -84,16 +83,12 @@ class HTTPResponseEncoder:
 
 
 def receive_HTTP_packet(conn):
-    logger = logging.getLogger("SOCKET")  # TODO delete logs
     data = b''
     while not HTTPValidator.is_HTTP_packet(data):
-        logger.debug("RECEIVING")
         new_data = conn.recv(1024)
         if new_data == b'':
             return data
         data += new_data
-        logger.debug("DATA: %r", data)
-    logger.debug("FINAL DATA: %r", data)
     return data
 
 
@@ -101,18 +96,13 @@ class HTTPValidator:
 
     @staticmethod
     def is_HTTP_packet(data):
-        logger = logging.getLogger("HTTP")  # TODO delete logs
-
         ans = data.decode().split('\r\n\r\n')
         if len(ans) == 2 and ans[1] == "":
             ans = [ans[0]]
-        logger.debug("ANS %r", ans)
         head = ans[0].split('\r\n', 1)
-        logger.debug("HEAD %r", head)
         if len(head) < 2:
             return False
         message = email.message_from_string(head[1])
         headers = dict(message.items())
-        logger.debug("HEADERS %r", headers)
         return 'Content-Length' in headers and int(headers['Content-Length']) == len(ans[1]) \
                or 'Content-Length' not in headers and len(ans) == 1
