@@ -1,3 +1,4 @@
+import os
 import uuid
 from threading import Thread
 from multiprocessing import Process, Pipe
@@ -136,7 +137,7 @@ class AuditLogger(Process):
         super(AuditLogger, self).__init__()
         self.logger = logging.getLogger("AuditLogger")
         self.pipe_out = pipe_out
-        self.file = open("audit-log", "a+")  # TODO Make file customizable
+        self.file = open(os.environ['LOG_FILE'], "a+")
 
         self.start()
 
