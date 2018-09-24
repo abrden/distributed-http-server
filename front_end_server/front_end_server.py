@@ -1,7 +1,5 @@
-import os
-import uuid
 from threading import Thread
-from multiprocessing import Process, Pipe
+from multiprocessing import Pipe
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -10,24 +8,8 @@ from connectivity.http import HTTPRequestDecoder, HTTPResponseDecoder
 from connectivity.sockets import ClientsSocket, ServerSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
 from concurrency.pipes import PipeRead, PipeWrite
-
-
-class RequestsPending:
-    clients = {}
-
-    @staticmethod
-    def new_request(client_conn):
-        req_id = uuid.uuid4().hex
-        RequestsPending.clients[req_id] = client_conn
-        return req_id
-
-    @staticmethod
-    def get_client_from_request(req_id):
-        return RequestsPending.clients[req_id]
-
-    @staticmethod
-    def request_completed(req_id):
-        del RequestsPending.clients[req_id]
+from .audit_logger import AuditLogger
+from .requests_pending import RequestsPending
 
 
 class RequestReceiverThread(Thread):
@@ -129,32 +111,6 @@ class ResponseSenderThread(Thread):
 
             self.logger.debug("Sending log to audit")
             self.logs_in.send([conn.address(), data])
-
-
-class AuditLogger(Process):
-
-    def __init__(self, pipe_out):
-        super(AuditLogger, self).__init__()
-        self.logger = logging.getLogger("AuditLogger")
-        self.pipe_out = pipe_out
-        self.file = open(os.environ['LOG_FILE'], "a+")
-
-        self.start()
-
-    def run(self):
-        self.file.write("LOG START\r\n")
-        while True:
-            new_log = self.pipe_out.receive()
-            if new_log is None:
-                self.logger.debug("EOF received at the end of log pipe")
-                break
-            [addr, data] = new_log
-            self.logger.debug("Writing new log received")
-            status, date, request_method = HTTPResponseDecoder.decode(data)
-            self.file.write(date + " " + addr[0] + ":" + str(addr[1]) + " " + request_method + " " + status + " " + "\r\n")
-
-        self.file.close()
-        self.pipe_out.close()
 
 
 class FrontEndServer:
