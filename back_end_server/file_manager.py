@@ -2,10 +2,10 @@ import logging
 from multiprocessing import Process
 from threading import Thread
 
-from connectivity.http import HTTPResponseEncoder, HTTPRequestDecoder
-from .file_handler import FileHandler
+from connectivity.http import HTTPRequestDecoder
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from concurrency.pipes import PipeRead, PipeWrite
+from .request_handler import RequestHandler
 
 
 class FileManager(Process):
@@ -58,6 +58,8 @@ class FileManagerWorker(Thread):
         self.response_pipe = response_pipe
         self.req = req
 
+        self.request_handler = RequestHandler(cache, self.getName())
+
         self.start()
 
     def run(self):
@@ -70,59 +72,6 @@ class FileManagerWorker(Thread):
         self.logger.debug("Headers %r", headers)
         self.logger.debug("Body %r", body)
 
-        res = self.fulfill_request(headers['Request-Id'], verb, path, body)
+        res = self.request_handler.handle(headers['Request-Id'], verb, path, body)
         self.logger.info("Sending response through pipe %r", res)
         self.response_pipe.send(res)
-
-    def fulfill_request(self, req_id, verb, path, body=None):
-        if path == "/":
-            self.logger.debug("Empty path: %r", path)
-            return HTTPResponseEncoder.encode(400, verb, req_id, 'URI should be /{origin}/{entity}/{id}\n')
-
-        if verb == 'GET':
-            if self.cache.has_entry(path):
-                self.logger.info("Cache HIT: %r", path)
-                cached_response = self.cache.get_entry(path)
-                return HTTPResponseEncoder.encode(200, verb, req_id, cached_response)
-            else:
-                self.logger.info("Cache MISS: %r", path)
-                try:
-                    response_content = FileHandler.fetch_file(path)
-                    self.logger.debug("File found: %r", path)
-
-                except IOError:
-                    self.logger.debug("File not found: %r", path)
-                    return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
-
-                self.cache.load_entry(path, response_content)
-                return HTTPResponseEncoder.encode(200, verb, req_id, response_content)
-
-        elif verb == 'POST':
-            try:
-                FileHandler.create_file(path, body)
-
-            except RuntimeError:
-                return HTTPResponseEncoder.encode(409, verb, req_id, 'A file with that URI already exists\n')
-
-            self.cache.load_entry(path, body)
-            return HTTPResponseEncoder.encode(201, verb, req_id, 'Created\n')
-
-        elif verb == 'PUT':
-            try:
-                FileHandler.update_file(path, body)
-
-            except IOError:
-                return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
-
-            self.cache.load_entry(path, body)
-            return HTTPResponseEncoder.encode(204, verb, req_id)
-
-        elif verb == 'DELETE':
-            try:
-                FileHandler.delete_file(path)
-
-            except IOError:
-                return HTTPResponseEncoder.encode(404, verb, req_id, 'File not found\n')
-
-            self.cache.delete_entry(path)
-            return HTTPResponseEncoder.encode(204, verb, req_id)
