@@ -1,5 +1,4 @@
 import os
-import sys
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -16,4 +15,5 @@ def main():
     logger.info("Done")
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -15,4 +15,5 @@ def main():
     logger.info("Done")
 
 
-main()
+if __name__ == "__main__":
+    main()
