@@ -1,5 +1,6 @@
 import time
 import email
+import logging
 
 
 class HTTPRequestDecoder:
@@ -96,6 +97,9 @@ class HTTPValidator:
 
     @staticmethod
     def is_HTTP_packet(data):
+        logging.basicConfig(level=logging.DEBUG)
+        logger = logging.getLogger('HTTPValidator')
+        logger.info("DATA: %r", data)
         ans = data.decode().split('\r\n\r\n')
         if len(ans) == 2 and ans[1] == "":
             ans = [ans[0]]
@@ -104,5 +108,5 @@ class HTTPValidator:
             return False
         message = email.message_from_string(head[1])
         headers = dict(message.items())
-        return 'Content-Length' in headers and int(headers['Content-Length']) == len(ans[1]) \
-               or 'Content-Length' not in headers and len(ans) == 1
+        return ('Content-Length' not in headers and len(ans) == 1) or \
+               ('Content-Length' in headers and int(headers['Content-Length']) == len(ans[1]))
