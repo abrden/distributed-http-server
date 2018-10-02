@@ -3,8 +3,6 @@ import pyhash
 import email
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
-
 from connectivity.sockets import ServerSocket, ClientsSocket
 
 

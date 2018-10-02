@@ -1,6 +1,7 @@
 import os
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(level=logging.DEBUG, format="%(levelname)s:%(name)s:%(threadName)s: %(message)s")
 
 from .back_end_server import BackEndServer
 

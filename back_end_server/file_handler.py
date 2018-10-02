@@ -1,5 +1,4 @@
 import os
-from threading import Lock
 import pyhash
 
 from concurrency.ReadWriteLock import ReadWriteLock

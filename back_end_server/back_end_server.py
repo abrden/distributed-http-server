@@ -2,8 +2,6 @@ from multiprocessing import Pipe
 from threading import Thread
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
-
 from .bridge import Bridge
 from concurrency.pipes import PipeRead, PipeWrite
 from .file_manager import FileManager
