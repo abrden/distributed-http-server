@@ -146,9 +146,9 @@ class FrontEndServer:
         self.http_server.shutdown()
         self.logger.debug("Closing bridge")
         self.bridge.shutdown()
-        for i in range(len(self.responders)):
+        for i, r in enumerate(self.responders):
             self.logger.debug("Joining ResponseSenderThread-%r", i)
-            self.responders[i].join()
+            r.join()
         self.logger.debug("Closing logs in pipe fd")
         self.logs_in_pipe.close()
         self.logger.debug("Joining AuditLogger Process")

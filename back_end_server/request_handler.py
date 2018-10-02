@@ -20,13 +20,13 @@ class RequestHandler:
             self.logger.debug("Empty path: %r", path)
             return HTTPResponseEncoder.encode(400, verb, req_id, 'URI should be /{origin}/{entity}/{id}\n')
 
-        if verb == 'GET':
+        if verb == GET_VERB:
             return self.handle_get(req_id, path)
-        elif verb == 'POST':
+        elif verb == POST_VERB:
             return self.handle_post(req_id, path, body)
-        elif verb == 'PUT':
+        elif verb == PUT_VERB:
             return self.handle_put(req_id, path, body)
-        elif verb == 'DELETE':
+        elif verb == DELETE_VERB:
             return self.handle_delete(req_id, path)
         else:
             return self.handle_unknown(req_id, verb)
@@ -35,7 +35,7 @@ class RequestHandler:
         if self.cache.has_entry(path):
             self.logger.info("Cache HIT: %r", path)
             cached_response = self.cache.get_entry(path)
-            return HTTPResponseEncoder.encode(200, 'GET', req_id, cached_response)
+            return HTTPResponseEncoder.encode(200, GET_VERB, req_id, cached_response)
         else:
             self.logger.info("Cache MISS: %r", path)
             try:

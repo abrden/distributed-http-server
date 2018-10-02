@@ -10,7 +10,6 @@ class FileSystemLock:
     def __init__(self):
         self.hasher = pyhash.super_fast_hash()
         self.file_locks_len = int(os.environ['LOCKS_POOL_SIZE'])
-        self.mutex = Lock()
         self.file_locks = []
         for i in range(self.file_locks_len):
             self.file_locks.append(ReadWriteLock())

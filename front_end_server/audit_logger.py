@@ -25,7 +25,10 @@ class AuditLogger(Process):
             [addr, data] = new_log
             self.logger.info("Writing new log")
             status, date, request_method = HTTPResponseDecoder.decode(data)
-            self.file.write(date + " " + addr[0] + ":" + str(addr[1]) + " " + request_method + " " + status + " " + "\r\n")
-
+            self.file.write(
+                "{date} {addr}:{port} {request_method} {status}\r\n".format(date=date,
+                                                                            addr=addr[0], port=addr[1],
+                                                                            request_method=request_method,
+                                                                            status=status))
         self.file.close()
         self.pipe_out.close()

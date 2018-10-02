@@ -27,7 +27,7 @@ class BridgePDUEncoder:
     @staticmethod
     def encode(request, req_id):
         required_header, rest = request.decode().split('\r\n', 1)
-        return (required_header + '\r\n' + 'Request-Id: ' + req_id + '\r\n' + rest).encode()
+        return "{required_header}\r\nRequest-Id: {req_id}\r\n{rest}".format(required_header=required_header, req_id=req_id, rest=rest).encode()
 
 
 class Bridge:
@@ -81,8 +81,6 @@ class Bridge:
 
     def shutdown(self):
         self.logger.debug("Closing bridge")
+        self.socket.close()
         for conn in self.be_conn:
             conn.close()
-        self.socket.close()
-
-

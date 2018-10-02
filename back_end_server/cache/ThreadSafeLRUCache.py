@@ -3,23 +3,26 @@ from threading import Lock
 from .LRUCache import LRUCache
 
 
-class ThreadSafeLRUCache(LRUCache):
+class ThreadSafeLRUCache:
     def __init__(self, size):
-        super(ThreadSafeLRUCache, self).__init__(size)
+        self.cache = LRUCache(size)
         self.mutex = Lock()
+
+    def has_entry(self, key):
+        return self.cache.has_entry(key)
 
     def get_entry(self, key):
         self.mutex.acquire()
-        value = super(ThreadSafeLRUCache, self).get_entry(key)
+        value = self.cache.get_entry(key)
         self.mutex.release()
         return value
 
     def load_entry(self, key, value):
         self.mutex.acquire()
-        super(ThreadSafeLRUCache, self).load_entry(key, value)
+        self.cache.load_entry(key, value)
         self.mutex.release()
 
     def delete_entry(self, key):
         self.mutex.acquire()
-        super(ThreadSafeLRUCache, self).delete_entry(key)
+        self.cache.delete_entry(key)
         self.mutex.release()

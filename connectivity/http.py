@@ -21,7 +21,7 @@ class HTTPRequestEncoder:
 
     @staticmethod
     def encode(host, port, verb, path, body=None):
-        h = verb + ' ' + path + ' ' + 'HTTP/1.1\r\nHost: ' + host + ':' + str(port) + '\r\n\r\n'
+        h = "{verb} {path} HTTP/1.1\r\nHost: {host}:{port}\r\n\r\n".format(verb=verb, path=path, host=host, port=port)
         if body:
             return (h + body).encode()
         return h.encode()

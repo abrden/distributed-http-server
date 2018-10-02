@@ -12,7 +12,7 @@ from .file_manager import FileManager
 class RequestReceiverThread(Thread):  # Name in terms of the client
 
     def __init__(self, request_pipe, bridge):
-        Thread.__init__(self)
+        super(RequestReceiverThread, self).__init__()
         self.logger = logging.getLogger('RequestReceiverThread')
 
         self.request_pipe = request_pipe
@@ -40,7 +40,7 @@ class RequestReceiverThread(Thread):  # Name in terms of the client
 class ResponseSenderThread(Thread):
 
     def __init__(self, response_pipe, bridge):
-        Thread.__init__(self)
+        super(ResponseSenderThread, self).__init__()
         self.logger = logging.getLogger("ResponseSenderThread")
 
         self.response_pipe = response_pipe
