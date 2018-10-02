@@ -10,7 +10,9 @@ def main():
     logger = logging.getLogger("BE-Server")
     logger.info("Starting BE Server")
 
-    s = BackEndServer(os.environ['FE_IP'], int(os.environ['FE_PORT']), int(os.environ['CACHE_SIZE']))
+    s = BackEndServer(os.environ['FE_IP'],
+                      int(os.environ['FE_PORT']),
+                      int(os.environ['CACHE_SIZE']))
     s.start()
 
     logger.info("Done")
