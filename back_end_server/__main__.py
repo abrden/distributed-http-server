@@ -12,7 +12,8 @@ def main():
 
     s = BackEndServer(os.environ['FE_IP'],
                       int(os.environ['FE_PORT']),
-                      int(os.environ['CACHE_SIZE']))
+                      int(os.environ['CACHE_SIZE']),
+                      int(os.environ['FILE_WORKERS_NUM']))
     s.start()
 
     logger.info("Done")

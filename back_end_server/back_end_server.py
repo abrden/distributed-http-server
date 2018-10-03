@@ -7,7 +7,7 @@ from concurrency.pipes import PipeRead, PipeWrite
 from .file_manager import FileManager
 
 
-class RequestReceiverThread(Thread):  # Name in terms of the client
+class RequestReceiverThread(Thread):
 
     def __init__(self, request_pipe, bridge):
         super(RequestReceiverThread, self).__init__()
@@ -60,7 +60,7 @@ class ResponseSenderThread(Thread):
 
 class BackEndServer:
 
-    def __init__(self, front_end_host, front_end_port, cache_size):
+    def __init__(self, front_end_host, front_end_port, cache_size, workers_num):
         self.logger = logging.getLogger("BackEndServer")
 
         self.logger.debug("Instantiating pipes")
@@ -77,7 +77,7 @@ class BackEndServer:
         self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
 
         self.logger.debug("Starting FileManager Process")
-        self.file_manager_process = FileManager(cache_size, request_p_out, response_p_in)
+        self.file_manager_process = FileManager(cache_size, request_p_out, response_p_in, workers_num)
 
         self.logger.debug("Closing unused pipe fds")
         request_p_out.close()
