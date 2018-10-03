@@ -14,7 +14,7 @@ from .requests_pending import RequestsPending
 class RequestReceiver:
 
     @staticmethod
-    def receive(conn, address, bridge):
+    def receive(conn, address, pending, bridge):
         logger = logging.getLogger("RequestReceiver-%r" % (address,))
 
         conn = ClientsSocket(conn, address)
@@ -30,7 +30,7 @@ class RequestReceiver:
         verb, path, version, headers, body = HTTPRequestDecoder.decode(data)
 
         logger.debug("Adding client %r to RequestsPending", conn)
-        req_id = RequestsPending.new_request(conn)
+        req_id = pending.new_request(conn)
         logger.debug("Adding req_id %r to request", req_id)
         data = BridgePDUEncoder.encode(data, req_id)
         logger.debug("Sending client request through Bridge %r", data)
@@ -40,9 +40,10 @@ class RequestReceiver:
 
 class HTTPServer:
 
-    def __init__(self, host, port, receivers_num, bridge):
+    def __init__(self, host, port, receivers_num, pending, bridge):
         self.logger = logging.getLogger("HTTPServer")
         self.socket = ServerSocket(host, port)
+        self.pending = pending
         self.bridge = bridge
         self.receivers_pool = Pool(receivers_num)
 
@@ -52,7 +53,7 @@ class HTTPServer:
             conn, addr = self.socket.accept_client()
             self.logger.debug("Client connection accepted")
 
-            self.receivers_pool.apply_async(RequestReceiver.receive, (conn, addr, self.bridge))
+            self.receivers_pool.apply_async(RequestReceiver.receive, (conn, addr, self.pending, self.bridge))
             self.logger.debug("Added connection to receiver pool")
 
     def shutdown(self):
@@ -67,10 +68,11 @@ class HTTPServer:
 
 class ResponseSenderThread(Thread):
 
-    def __init__(self, bridge, be_num, logs_in):
+    def __init__(self, pending, bridge, be_num, logs_in):
         super(ResponseSenderThread, self).__init__()
         self.be_num = be_num
         self.bridge = bridge
+        self.pending = pending
         self.logs_in = logs_in
         self.logger = logging.getLogger("ResponseSenderThread-%r" % (self.be_num,))
 
@@ -87,11 +89,11 @@ class ResponseSenderThread(Thread):
             self.logger.debug("Received response from BE server %r: %r", self.be_num, response)
             req_id, data = BridgePDUDecoder.decode(response)
             self.logger.debug("Getting client for request %r", req_id)
-            conn = RequestsPending.get_client_from_request(req_id)
+            conn = self.pending.get_client_from_request(req_id)
             self.logger.debug("Sending data to client %r", data)
             conn.send(data)
             self.logger.debug("Sent data %r to client", data)
-            RequestsPending.request_completed(req_id)
+            self.pending.request_completed(req_id)
             self.logger.debug("Closing connection with client")
             conn.close()
 
@@ -105,8 +107,11 @@ class FrontEndServer:
         self.logger = logging.getLogger("FrontEndServer")
         self.logger.debug("Building bridge with BE")
         self.bridge = Bridge(bridge_host, bridge_port, servers)
+
+        pending = RequestsPending()
+
         self.logger.debug("Creating HTTP Server")
-        self.http_server = HTTPServer(host, port, receivers_num, self.bridge)
+        self.http_server = HTTPServer(host, port, receivers_num, pending, self.bridge)
 
         self.logger.debug("Creating Pipe for audit logs")
         logs_out, logs_in = Pipe(duplex=False)
@@ -118,7 +123,7 @@ class FrontEndServer:
         self.responders = []
         self.logger.debug("Creating ResponseSender Threads")
         for i in range(self.servers):
-            responder = ResponseSenderThread(self.bridge, i, self.logs_in_pipe)
+            responder = ResponseSenderThread(pending, self.bridge, i, self.logs_in_pipe)
             self.responders.append(responder)
         self.logger.debug("Creating AuditLogger Process")
         self.audit_logger = AuditLogger(logs_out_pipe)
