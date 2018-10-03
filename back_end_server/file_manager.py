@@ -11,11 +11,11 @@ from .request_handler import RequestHandler
 class FileManagerWorker:
 
     @staticmethod
-    def work(response_pipe, cache, req):
+    def work(locks_pool_size, response_pipe, cache, req):
         logger = logging.getLogger("FileManagerWorker")
         logger.debug("Working on request %r", req)
 
-        request_handler = RequestHandler(cache)
+        request_handler = RequestHandler(cache, locks_pool_size)
 
         verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
         res = request_handler.handle(headers['Request-Id'], verb, path, body)
@@ -26,7 +26,7 @@ class FileManagerWorker:
 
 class FileManager(Process):
 
-    def __init__(self, cache_size, requests_p_out, response_p_in, workers_num):
+    def __init__(self, cache_size, locks_pool_size, requests_p_out, response_p_in, workers_num):
         super(FileManager, self).__init__()
 
         self.logger = logging.getLogger("FileManager")
@@ -38,6 +38,7 @@ class FileManager(Process):
         self.response_pipe = PipeWrite(response_p_in)
 
         self.workers = workers_num
+        self.locks_pool_size = locks_pool_size
 
         self.start()
 
@@ -52,7 +53,7 @@ class FileManager(Process):
                 break
 
             self.logger.info("Adding request to workers pool")
-            pool.apply_async(FileManagerWorker.work, (self.response_pipe, self.cache, req))
+            pool.apply_async(FileManagerWorker.work, (self.locks_pool_size, self.response_pipe, self.cache, req))
 
         self.logger.debug("Closing workers pool")
         pool.close()

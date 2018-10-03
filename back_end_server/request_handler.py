@@ -11,9 +11,10 @@ DELETE_VERB = 'DELETE'
 
 class RequestHandler:
 
-    def __init__(self, cache):
+    def __init__(self, cache, locks_pool_size):
         self.logger = logging.getLogger('RequestHandler')
         self.cache = cache
+        self.file_handler = FileHandler(locks_pool_size)
 
     def handle(self, req_id, verb, path, body=None):
         if path == "/":
@@ -39,7 +40,7 @@ class RequestHandler:
         else:
             self.logger.info("Cache MISS: %r", path)
             try:
-                response_content = FileHandler.fetch_file(path)
+                response_content = self.file_handler.fetch_file(path)
                 self.logger.debug("File found: %r", path)
 
             except IOError:
@@ -51,7 +52,7 @@ class RequestHandler:
 
     def _handle_post(self, req_id, path, body):
         try:
-            FileHandler.create_file(path, body)
+            self.file_handler.create_file(path, body)
 
         except RuntimeError:
             self.logger.debug("File already exists: %r", path)
@@ -62,7 +63,7 @@ class RequestHandler:
 
     def _handle_put(self, req_id, path, body):
         try:
-            FileHandler.update_file(path, body)
+            self.file_handler.update_file(path, body)
 
         except IOError:
             self.logger.debug("File not found: %r", path)
@@ -73,7 +74,7 @@ class RequestHandler:
 
     def _handle_delete(self, req_id, path):
         try:
-            FileHandler.delete_file(path)
+            self.file_handler.delete_file(path)
 
         except IOError:
             self.logger.debug("File not found: %r", path)

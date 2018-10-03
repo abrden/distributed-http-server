@@ -60,7 +60,7 @@ class ResponseSenderThread(Thread):
 
 class BackEndServer:
 
-    def __init__(self, front_end_host, front_end_port, cache_size, workers_num):
+    def __init__(self, front_end_host, front_end_port, cache_size, locks_pool_size, workers_num):
         self.logger = logging.getLogger("BackEndServer")
 
         self.logger.debug("Instantiating pipes")
@@ -77,7 +77,7 @@ class BackEndServer:
         self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
 
         self.logger.debug("Starting FileManager Process")
-        self.file_manager_process = FileManager(cache_size, request_p_out, response_p_in, workers_num)
+        self.file_manager_process = FileManager(cache_size, locks_pool_size, request_p_out, response_p_in, workers_num)
 
         self.logger.debug("Closing unused pipe fds")
         request_p_out.close()
