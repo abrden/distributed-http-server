@@ -1,5 +1,6 @@
 import os
 import pyhash
+from threading import Lock
 
 from concurrency.ReadWriteLock import ReadWriteLock
 
@@ -36,11 +37,13 @@ class FileSystemLock:
 class FileHandler:
     def __init__(self, locks_pool_size):
         self.locks = FileSystemLock(locks_pool_size)
+        self.mutex = Lock()
 
     def _ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        with self.mutex:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
 
     def fetch_file(self, path):
         path = '.' + path
@@ -49,9 +52,8 @@ class FileHandler:
             raise IOError('File does not exist')
 
         self.locks.acquire_read(path)
-        file = open(path, 'r')
-        content = file.read()
-        file.close()
+        with open(path, 'r') as f:
+            content = f.read()
         self.locks.release_read(path)
         return content
 
@@ -61,9 +63,8 @@ class FileHandler:
             raise RuntimeError('File already exists')
         self.locks.acquire_write(path)
         self._ensure_dir(path)
-        file = open(path, 'w+')
-        file.write(content)
-        file.close()
+        with open(path, 'w+') as f:
+            f.write(content)
         self.locks.release_write(path)
 
     def update_file(self, path, content):
@@ -71,9 +72,8 @@ class FileHandler:
         if not os.path.isfile(path):
             raise IOError('File does not exist')
         self.locks.acquire_write(path)
-        file = open(path, 'w+')
-        file.write(content)
-        file.close()
+        with open(path, 'w+') as f:
+            f.write(content)
         self.locks.release_write(path)
 
     def delete_file(self, path):

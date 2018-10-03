@@ -3,7 +3,6 @@ from multiprocessing import Process
 from multiprocessing.dummy import Pool
 
 from connectivity.http import HTTPRequestDecoder
-from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from concurrency.pipes import PipeRead, PipeWrite
 from .request_handler import RequestHandler
 
@@ -11,11 +10,9 @@ from .request_handler import RequestHandler
 class FileManagerWorker:
 
     @staticmethod
-    def work(locks_pool_size, response_pipe, cache, req):
+    def work(response_pipe, request_handler, req):
         logger = logging.getLogger("FileManagerWorker")
         logger.debug("Working on request %r", req)
-
-        request_handler = RequestHandler(cache, locks_pool_size)
 
         verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
         res = request_handler.handle(headers['Request-Id'], verb, path, body)
@@ -31,14 +28,12 @@ class FileManager(Process):
 
         self.logger = logging.getLogger("FileManager")
 
-        self.logger.info("Initializing cache with size %r", cache_size)
-        self.cache = ThreadSafeLRUCache(cache_size)
-
         self.request_pipe = PipeRead(requests_p_out)
         self.response_pipe = PipeWrite(response_p_in)
 
+        self.request_handler = RequestHandler(cache_size, locks_pool_size)
+
         self.workers = workers_num
-        self.locks_pool_size = locks_pool_size
 
         self.start()
 
@@ -53,7 +48,7 @@ class FileManager(Process):
                 break
 
             self.logger.info("Adding request to workers pool")
-            pool.apply_async(FileManagerWorker.work, (self.locks_pool_size, self.response_pipe, self.cache, req))
+            pool.apply_async(FileManagerWorker.work, (self.response_pipe, self.request_handler, req))
 
         self.logger.debug("Closing workers pool")
         pool.close()

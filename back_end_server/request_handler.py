@@ -1,6 +1,8 @@
 import logging
+from threading import Lock
 
 from .file_handler import FileHandler
+from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
 from connectivity.http import HTTPResponseEncoder
 
 GET_VERB = 'GET'
@@ -11,10 +13,11 @@ DELETE_VERB = 'DELETE'
 
 class RequestHandler:
 
-    def __init__(self, cache, locks_pool_size):
+    def __init__(self, cache_size, locks_pool_size):
         self.logger = logging.getLogger('RequestHandler')
-        self.cache = cache
+        self.cache = ThreadSafeLRUCache(cache_size)
         self.file_handler = FileHandler(locks_pool_size)
+        self.mutex = Lock()
 
     def handle(self, req_id, verb, path, body=None):
         if path == "/":
@@ -33,11 +36,14 @@ class RequestHandler:
             return self._handle_unknown(req_id, verb)
 
     def _handle_get(self, req_id, path):
+        self.mutex.acquire()
         if self.cache.has_entry(path):
             self.logger.info("Cache HIT: %r", path)
             cached_response = self.cache.get_entry(path)
+            self.mutex.release()
             return HTTPResponseEncoder.encode(200, GET_VERB, req_id, cached_response)
         else:
+            self.mutex.release()
             self.logger.info("Cache MISS: %r", path)
             try:
                 response_content = self.file_handler.fetch_file(path)
