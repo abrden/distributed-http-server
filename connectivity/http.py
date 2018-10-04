@@ -82,16 +82,6 @@ class HTTPResponseEncoder:
         return header
 
 
-def receive_HTTP_packet(conn):
-    data = b''
-    while not HTTPValidator.is_HTTP_packet(data):
-        new_data = conn.recv(1024)
-        if new_data == b'':
-            return data
-        data += new_data
-    return data
-
-
 class HTTPValidator:
 
     @staticmethod

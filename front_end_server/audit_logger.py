@@ -5,7 +5,7 @@ import logging
 from connectivity.http import HTTPResponseDecoder
 
 
-class AuditLogger(Process):
+class AuditLogger(Process): # TODO Deprecated, delete
 
     def __init__(self, pipe_out):
         super(AuditLogger, self).__init__()
