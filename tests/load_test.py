@@ -3,7 +3,8 @@ import sys
 import os
 import random
 import logging
-import requests
+
+from request import get, post, put, delete
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -12,22 +13,6 @@ def generate_random_uri():
     origins = ['netflix', 'spotify', 'almundo', 'pandora', 'hulu']
     resources = ['movies', 'series', 'songs', 'albums', 'artists', 'users']
     return '/' + random.choice(origins) + '/' + random.choice(resources) + '/' + str(random.randint(1, 10))
-
-
-def get(url, content=None):
-    return requests.get(url, headers={'Connection': 'close'})
-
-
-def post(url, content=None):
-    return requests.post(url, data=content, headers={'Connection': 'close'})
-
-
-def put(url, content=None):
-    return requests.put(url, data=content, headers={'Connection': 'close'})
-
-
-def delete(url, content=None):
-    return requests.delete(url, headers={'Connection': 'close'}, data="a")  # FIXME Hangs if I dont send content
 
 
 def random_method():
