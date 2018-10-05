@@ -39,28 +39,23 @@ class HTTPResponseDecoder:
 
 
 class HTTPResponseEncoder:
+    code_as_string = {
+        200: 'HTTP/1.1 200 OK\r\n',
+        201: 'HTTP/1.1 201 Created\r\n',
+        204: 'HTTP/1.1 204 No Content\r\n',
+        400: 'HTTP/1.1 400 Bad Request\r\n',
+        404: 'HTTP/1.1 404 Not Found\r\n',
+        409: 'HTTP/1.1 409 Conflict\r\n',
+        501: 'HTTP/1.1 501 Not Implemented\r\n'
+    }
 
     @staticmethod
     def header(code, verb, req_id, content_len=None):
-        h = ''
-        if code == 200:
-            h = 'HTTP/1.1 200 OK\r\n'
-        elif code == 201:
-            h = 'HTTP/1.1 201 Created\r\n'
-        elif code == 204:
-            h = 'HTTP/1.1 204 No Content\r\n'
-        elif code == 400:
-            h = 'HTTP/1.1 400 Bad Request\r\n'
-        elif code == 404:
-            h = 'HTTP/1.1 404 Not Found\r\n'
-        elif code == 409:
-            h = 'HTTP/1.1 409 Conflict\r\n'
-        elif code == 501:
-            h = 'HTTP/1.1 501 Not Implemented\r\n'
+        if code in HTTPResponseEncoder.code_as_string:
+            h = HTTPResponseEncoder.code_as_string[code]
         else:
             raise RuntimeError('Un recognized status code')  # TODO specific error
 
-        # Optional headers
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
         h += 'Request-Type: ' + verb + '\r\n'
@@ -80,16 +75,6 @@ class HTTPResponseEncoder:
             return header + content.encode()
         header = HTTPResponseEncoder.header(code, verb, req_id)
         return header
-
-
-def receive_HTTP_packet(conn):
-    data = b''
-    while not HTTPValidator.is_HTTP_packet(data):
-        new_data = conn.recv(1024)
-        if new_data == b'':
-            return data
-        data += new_data
-    return data
 
 
 class HTTPValidator:

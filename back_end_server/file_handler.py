@@ -1,15 +1,15 @@
 import os
-from threading import Lock
 import pyhash
+from threading import Lock
 
 from concurrency.ReadWriteLock import ReadWriteLock
 
 
 class FileSystemLock:
 
-    def __init__(self):
+    def __init__(self, locks_pool_size):
         self.hasher = pyhash.super_fast_hash()
-        self.file_locks_len = int(os.environ['LOCKS_POOL_SIZE'])
+        self.file_locks_len = locks_pool_size
         self.file_locks = []
         for i in range(self.file_locks_len):
             self.file_locks.append(ReadWriteLock())
@@ -35,56 +35,51 @@ class FileSystemLock:
 
 
 class FileHandler:
-    locks = FileSystemLock()
+    def __init__(self, locks_pool_size):
+        self.locks = FileSystemLock(locks_pool_size)
+        self.mutex = Lock()
 
-    @staticmethod
-    def ensure_dir(file_path):
+    def _ensure_dir(self, file_path):
         directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        with self.mutex:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
 
-    @staticmethod
-    def fetch_file(path):
+    def fetch_file(self, path):
         path = '.' + path
 
         if not os.path.isfile(path):
             raise IOError('File does not exist')
 
-        FileHandler.locks.acquire_read(path)
-        file = open(path, 'r')
-        content = file.read()
-        file.close()
-        FileHandler.locks.release_read(path)
+        self.locks.acquire_read(path)
+        with open(path, 'r') as f:
+            content = f.read()
+        self.locks.release_read(path)
         return content
 
-    @staticmethod
-    def create_file(path, content):
+    def create_file(self, path, content):
         path = '.' + path
         if os.path.isfile(path):
             raise RuntimeError('File already exists')
-        FileHandler.locks.acquire_write(path)
-        FileHandler.ensure_dir(path)
-        file = open(path, 'w+')
-        file.write(content)
-        file.close()
-        FileHandler.locks.release_write(path)
+        self.locks.acquire_write(path)
+        self._ensure_dir(path)
+        with open(path, 'w+') as f:
+            f.write(content)
+        self.locks.release_write(path)
 
-    @staticmethod
-    def update_file(path, content):
+    def update_file(self, path, content):
         path = '.' + path
         if not os.path.isfile(path):
             raise IOError('File does not exist')
-        FileHandler.locks.acquire_write(path)
-        file = open(path, 'w+')
-        file.write(content)
-        file.close()
-        FileHandler.locks.release_write(path)
+        self.locks.acquire_write(path)
+        with open(path, 'w+') as f:
+            f.write(content)
+        self.locks.release_write(path)
 
-    @staticmethod
-    def delete_file(path):
+    def delete_file(self, path):
         path = '.' + path
         if not os.path.isfile(path):
             raise IOError('File does not exist')
-        FileHandler.locks.acquire_write(path)
+        self.locks.acquire_write(path)
         os.remove(path)
-        FileHandler.locks.release_write(path)
+        self.locks.release_write(path)

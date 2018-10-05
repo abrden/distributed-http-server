@@ -1,7 +1,6 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
-from connectivity.sockets import ClientSocket
+from connectivity.sockets import ClientHTTPSocket
 
 
 class Bridge:
@@ -9,7 +8,7 @@ class Bridge:
     def __init__(self, host, port):
         self.logger = logging.getLogger("BE-Bridge")
         self.logger.debug("Connecting with FE server")
-        self.socket = ClientSocket(host, port)
+        self.socket = ClientHTTPSocket(host, port)
 
     def receive_request(self):
         self.logger.debug("Waiting for request")
