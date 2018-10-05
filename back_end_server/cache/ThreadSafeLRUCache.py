@@ -12,17 +12,14 @@ class ThreadSafeLRUCache:
         return self.cache.has_entry(key)
 
     def get_entry(self, key):
-        self.mutex.acquire()
-        value = self.cache.get_entry(key)
-        self.mutex.release()
+        with self.mutex:
+            value = self.cache.get_entry(key)
         return value
 
     def load_entry(self, key, value):
-        self.mutex.acquire()
-        self.cache.load_entry(key, value)
-        self.mutex.release()
+        with self.mutex:
+            self.cache.load_entry(key, value)
 
     def delete_entry(self, key):
-        self.mutex.acquire()
-        self.cache.delete_entry(key)
-        self.mutex.release()
+        with self.mutex:
+            self.cache.delete_entry(key)
