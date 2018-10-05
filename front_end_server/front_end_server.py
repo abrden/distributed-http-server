@@ -123,16 +123,17 @@ class FrontEndServer:
 
     def __init__(self, host, port, bridge_host, bridge_port, logger_host, logger_port, servers, receivers_num):
         self.logger = logging.getLogger("FrontEndServer")
-        self.logger.debug("Building bridge with BE")
+
+        self.logger.debug("Creating LoggerConnection")
+        self.logger_connection = LoggerConnection(logger_host, logger_port)
+
+        self.logger.debug("Building bridge with BE Servers")
         self.bridge = Bridge(bridge_host, bridge_port, servers)
 
         pending = RequestsPending()
 
         self.logger.debug("Creating HTTP Server")
         self.http_server = HTTPServer(host, port, receivers_num, pending, self.bridge)
-
-        self.logger.debug("Creating LoggerConnection")
-        self.logger_connection = LoggerConnection(logger_host, logger_port)
 
         self.servers = servers
         self.responders = []
