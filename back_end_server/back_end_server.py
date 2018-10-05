@@ -14,10 +14,7 @@ class RequestReceiverThread(Thread):
         self.logger = logging.getLogger('RequestReceiverThread')
 
         self.request_pipe = request_pipe
-
         self.bridge = bridge
-
-        self.start()
 
     def run(self):
         while True:
@@ -35,24 +32,20 @@ class RequestReceiverThread(Thread):
             self.logger.debug("Request sent through pipe")
 
 
-class ResponseSenderThread(Thread):
+class ResponseSender:
 
     def __init__(self, response_pipe, bridge):
-        super(ResponseSenderThread, self).__init__()
         self.logger = logging.getLogger("ResponseSenderThread")
 
         self.response_pipe = response_pipe
-
         self.bridge = bridge
-
-        # self.start()
 
     def run(self):
         while True:
             data = self.response_pipe.receive()
             if data is None:
                 self.logger.debug("Pipe closed remotely. Ending my run")
-                break
+                raise KeyboardInterrupt
             self.logger.debug("Received response from pipe %r", data)
             self.logger.debug("Sending response through bridge")
             self.bridge.answer_request(data)
@@ -75,6 +68,7 @@ class BackEndServer:
 
         self.logger.debug("Starting RequestReceiver Thread")
         self.req_receiver_thread = RequestReceiverThread(self.request_pipe, self.bridge)
+        self.req_receiver_thread.start()
 
         self.logger.debug("Starting FileManager Process")
         self.file_manager_process = FileManager(cache_size, locks_pool_size, request_p_out, response_p_in, workers_num)
@@ -83,12 +77,12 @@ class BackEndServer:
         request_p_out.close()
         response_p_in.close()
 
-        # self.res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
-
     def start(self):
-        res_sender_thread = ResponseSenderThread(self.response_pipe, self.bridge)
-        res_sender_thread.run()
-        self.shutdown()
+        res_sender_thread = ResponseSender(self.response_pipe, self.bridge)
+        try:
+            res_sender_thread.run()
+        except KeyboardInterrupt:
+            self.shutdown()
 
     def shutdown(self):
         self.logger.debug("Closing Bridge")
@@ -98,6 +92,5 @@ class BackEndServer:
         self.response_pipe.close()
         self.logger.debug("Joining RequestReceiver Thread")
         self.req_receiver_thread.join()
-        # self.res_sender_thread.join()
         self.logger.debug("Joining FileManager Process")
         self.file_manager_process.join()
