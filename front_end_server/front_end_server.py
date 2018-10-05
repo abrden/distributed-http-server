@@ -1,13 +1,10 @@
-from threading import Thread
-from multiprocessing import Pipe
+from threading import Thread, Lock
 from multiprocessing.dummy import Pool
 import logging
 
 from connectivity.http import HTTPRequestDecoder, HTTPResponseDecoder
-from connectivity.sockets import ClientsSocket, ServerSocket
+from connectivity.sockets import ServerSocket, LogSenderSocket, ServersClientHTTPSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
-from concurrency.pipes import PipeRead, PipeWrite
-from .audit_logger import AuditLogger
 from .requests_pending import RequestsPending
 
 
@@ -17,7 +14,7 @@ class RequestReceiver:
     def receive(conn, address, pending, bridge):
         logger = logging.getLogger("RequestReceiver-%r" % (address,))
 
-        conn = ClientsSocket(conn, address)
+        conn = ServersClientHTTPSocket(conn, address)
         logger.debug("Connected client %r at %r", conn, address)
 
         try:
@@ -68,12 +65,12 @@ class HTTPServer:
 
 class ResponseSenderThread(Thread):
 
-    def __init__(self, pending, bridge, be_num, logs_in):
+    def __init__(self, pending, bridge, be_num, logs_conn):
         super(ResponseSenderThread, self).__init__()
         self.be_num = be_num
         self.bridge = bridge
         self.pending = pending
-        self.logs_in = logs_in
+        self.logs_conn = logs_conn
         self.logger = logging.getLogger("ResponseSenderThread-%r" % (self.be_num,))
 
         self.start()
@@ -98,14 +95,39 @@ class ResponseSenderThread(Thread):
             conn.close()
 
             self.logger.debug("Sending log to audit")
-            self.logs_in.send([conn.address(), data])
+            status, date, method = HTTPResponseDecoder.decode(data)
+            self.logger.debug("date %r", date)
+            self.logger.debug("method %r", method)
+            self.logger.debug("status %r", status)
+            self.logs_conn.send_log(date, conn.address(), method, status)
+
+
+class LoggerConnection:
+
+    def __init__(self, host, port):
+        self.mutex = Lock()
+        self.logger_socket = ServerSocket(host, port)
+        conn, addr = self.logger_socket.accept_client()
+        self.logger_connection = LogSenderSocket(conn)
+
+    def send_log(self, date, addr, method, status):
+        with self.mutex:
+            self.logger_connection.send(date, addr, method, status)
+
+    def close(self):
+        self.logger_socket.close()
+        self.logger_connection.close()
 
 
 class FrontEndServer:
 
-    def __init__(self, host, port, bridge_host, bridge_port, servers, receivers_num):
+    def __init__(self, host, port, bridge_host, bridge_port, logger_host, logger_port, servers, receivers_num):
         self.logger = logging.getLogger("FrontEndServer")
-        self.logger.debug("Building bridge with BE")
+
+        self.logger.debug("Creating LoggerConnection")
+        self.logger_connection = LoggerConnection(logger_host, logger_port)
+
+        self.logger.debug("Building bridge with BE Servers")
         self.bridge = Bridge(bridge_host, bridge_port, servers)
 
         pending = RequestsPending()
@@ -113,23 +135,12 @@ class FrontEndServer:
         self.logger.debug("Creating HTTP Server")
         self.http_server = HTTPServer(host, port, receivers_num, pending, self.bridge)
 
-        self.logger.debug("Creating Pipe for audit logs")
-        logs_out, logs_in = Pipe(duplex=False)
-
-        self.logs_in_pipe = PipeWrite(logs_in)
-        logs_out_pipe = PipeRead(logs_out)
-
         self.servers = servers
         self.responders = []
         self.logger.debug("Creating ResponseSender Threads")
         for i in range(self.servers):
-            responder = ResponseSenderThread(pending, self.bridge, i, self.logs_in_pipe)
+            responder = ResponseSenderThread(pending, self.bridge, i, self.logger_connection)
             self.responders.append(responder)
-        self.logger.debug("Creating AuditLogger Process")
-        self.audit_logger = AuditLogger(logs_out_pipe)
-
-        self.logger.debug("Closing logs out pipe fd")
-        logs_out.close()
 
     def start(self):
         try:
@@ -145,7 +156,5 @@ class FrontEndServer:
         for i, r in enumerate(self.responders):
             self.logger.debug("Joining ResponseSenderThread-%r", i)
             r.join()
-        self.logger.debug("Closing logs in pipe fd")
-        self.logs_in_pipe.close()
-        self.logger.debug("Joining AuditLogger Process")
-        self.audit_logger.join()
+        self.logger.debug("Closing LoggerConnection")
+        self.logger_connection.close()

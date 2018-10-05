@@ -14,6 +14,8 @@ def main():
                        int(os.environ['HTTP_SERVER_PORT']),
                        os.environ['HOST'],
                        int(os.environ['BRIDGE_PORT']),
+                       os.environ['HOST'],
+                       int(os.environ['LOGGER_PORT']),
                        int(os.environ['BE_NUM']),
                        int(os.environ['RECEIVERS_NUM']))
     s.start()
