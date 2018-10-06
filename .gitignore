@@ -114,5 +114,9 @@ dmypy.json
 .idea
 
 netflix/
+pandora/
+almundo/
+spotify/
+hulu/
 audit-log
 .DS_Store

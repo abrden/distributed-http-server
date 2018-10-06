@@ -1,33 +1,18 @@
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 import sys
 import os
 import random
 import logging
-import requests
 
-logging.basicConfig(level=logging.DEBUG)
+from request import get, post, put, delete
+
+logging.basicConfig(level=logging.INFO)
 
 
 def generate_random_uri():
     origins = ['netflix', 'spotify', 'almundo', 'pandora', 'hulu']
     resources = ['movies', 'series', 'songs', 'albums', 'artists', 'users']
     return '/' + random.choice(origins) + '/' + random.choice(resources) + '/' + str(random.randint(1, 10))
-
-
-def get(url, content=None):
-    return requests.get(url, headers={'Connection': 'close'})
-
-
-def post(url, content=None):
-    return requests.post(url, data=content, headers={'Connection': 'close'})
-
-
-def put(url, content=None):
-    return requests.put(url, data=content, headers={'Connection': 'close'})
-
-
-def delete(url, content=None):
-    return requests.delete(url, headers={'Connection': 'close'}, data="a")  # FIXME Hangs if I dont send content
 
 
 def random_method():
@@ -58,38 +43,26 @@ def make_requests(host, port, reqs):
             content = generate_random_content()
             logger.debug("Making %r request with URI %r and content %r", method, uri, content)
             res = f('http://' + host + ':' + str(port) + uri, content)
+            logger.info("Made %r request with URI %r and content %r - Got response code %r", method, uri, content, res.status_code)
         else:
             logger.debug("Making %r request with URI %r", method, uri)
             res = f('http://' + host + ':' + str(port) + uri)
-
-        logger.debug("Got response code %r", res.status_code)
+            logger.info("Made %r request with URI %r - Got response code %r", method, uri, res.status_code)
 
 
 def load_test(host, port, n_procs, m_reqs):
     logger = logging.getLogger("LoadTest")
-    logger.info("Creating %r processes", n_procs)
 
-    workers = []
-    for i in range(n_procs):
-        worker = Process(target=make_requests, args=(host, port, m_reqs))
-        worker.start()
-        workers.append(worker)
-
-    logger.info("Joining workers")
-    for w in workers:
-        w.join()
-
-    '''
     logger.info("Creating pool of %r processes", n_procs)
     pool = Pool(processes=n_procs)
 
-    logger.info("Mapping %r*%r requests on the pool", n_procs, m_reqs)
-    pool.map(make_requests, [(host, port, m_reqs)] * n_procs)
+    logger.info("Applying %r*%r requests on the pool", n_procs, m_reqs)
+    for _ in range(n_procs):
+        pool.apply_async(make_requests, (host, port, m_reqs))
 
     logger.info("Closing and joining the pool")
     pool.close()
     pool.join()
-    '''
 
 
 if __name__ == '__main__':

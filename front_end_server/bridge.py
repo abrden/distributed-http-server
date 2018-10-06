@@ -1,33 +1,43 @@
 from threading import Lock
 import pyhash
-import email
 import logging
+from struct import pack, unpack
 
-logging.basicConfig(level=logging.DEBUG)
-
-from connectivity.sockets import ServerSocket, ClientsSocket
+from connectivity.sockets import ServerSocket, ServersClientBridgePDUSocket
 
 
 class BridgePDUDecoder:
 
     @staticmethod
-    def decode(response):
-        request_text = response.decode()
-
-        request_line, rest = request_text.split('\r\n', 1)
-        headers_alone, body = rest.split('\r\n\r\n', 1)
-        message = email.message_from_string(headers_alone)
-        headers = dict(message.items())
-
-        return headers['Request-Id'], response
+    def decode(pdu):
+        status, method_size, req_id_size, content_size = unpack("!iiii", pdu[:16])
+        if content_size > 0:
+            method, req_id, content = unpack("!{}s{}s{}s".format(method_size, req_id_size, content_size), pdu[16:])
+            return status, method.decode(), req_id.decode(), content.decode()
+        else:
+            method, req_id = unpack("!{}s{}s".format(method_size, req_id_size), pdu[16:])
+            return status, method.decode(), req_id.decode(), None
 
 
 class BridgePDUEncoder:
 
     @staticmethod
-    def encode(request, req_id):
-        required_header, rest = request.decode().split('\r\n', 1)
-        return (required_header + '\r\n' + 'Request-Id: ' + req_id + '\r\n' + rest).encode()
+    def encode(method, uri, req_id, content=None):
+        import logging
+        logger = logging.getLogger('lala')
+        logger.debug("me %r", method)
+        logger.debug("uri %r", uri)
+        logger.debug("rid %r", req_id)
+        logger.debug("con %r", content)
+
+        if content is not None:
+            msg = pack("!iiii{}s{}s{}s{}s".format(len(method), len(uri), len(req_id), len(content)),
+                       len(method), len(uri), len(req_id), len(content), method.encode(), uri.encode(), req_id.encode(), content.encode())
+        else:
+            msg = pack("!iiii{}s{}s{}s".format(len(method), len(uri), len(req_id)),
+                       len(method), len(uri), len(req_id), 0, method.encode(), uri.encode(), req_id.encode())
+        logger.debug("msg %r", msg)
+        return msg
 
 
 class Bridge:
@@ -51,7 +61,7 @@ class Bridge:
 
         connections.sort()
         for client in connections:
-            cs = ClientsSocket(client[1], client[0])
+            cs = ServersClientBridgePDUSocket(client[1])
             self.be_conn.append(cs)
             self.be_conn_locks.append((Lock(), Lock()))  # First lock to coordinate reading, second for writing
 
@@ -63,26 +73,22 @@ class Bridge:
         self.logger.debug("Sending request %r to %r", data, be_num)
         conn = self.be_conn[be_num]
 
-        self.be_conn_locks[be_num][0].acquire()
-        self.logger.debug("Sending request to %r", be_num)
-        conn.send(data)
-        self.logger.debug("Request sent to %r", be_num)
-        self.be_conn_locks[be_num][0].release()
+        with self.be_conn_locks[be_num][0]:
+            self.logger.debug("Sending request to %r", be_num)
+            conn.send(data)
+            self.logger.debug("Request sent to %r", be_num)
 
     def wait_for_response(self, be_num):
         self.logger.debug("Waiting for %r response", be_num)
         conn = self.be_conn[be_num]
-        self.be_conn_locks[be_num][1].acquire()
-        content = conn.receive()
-        self.be_conn_locks[be_num][1].release()
+        with self.be_conn_locks[be_num][1]:
+            content = conn.receive()
 
         self.logger.debug("Received %r response from %r", content, be_num)
         return content
 
     def shutdown(self):
         self.logger.debug("Closing bridge")
+        self.socket.close()
         for conn in self.be_conn:
             conn.close()
-        self.socket.close()
-
-
