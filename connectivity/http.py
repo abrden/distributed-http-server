@@ -51,7 +51,7 @@ class HTTPResponseEncoder:
     }
 
     @staticmethod
-    def header(code, verb, req_id, content_len=None):
+    def header(code, content_len=None):
         if code in HTTPResponseEncoder.code_as_string:
             h = HTTPResponseEncoder.code_as_string[code]
         else:
@@ -59,8 +59,8 @@ class HTTPResponseEncoder:
 
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
-        h += 'Request-Type: ' + verb + '\r\n'
-        h += 'Request-Id: ' + req_id + '\r\n'
+        #h += 'Request-Type: ' + verb + '\r\n'
+        # h += 'Request-Id: ' + req_id + '\r\n'
         if content_len is not None:
             h += 'Content-Length: ' + str(content_len) + '\r\n'
         h += 'Server: Distributed-HTTP-Server\r\n'
@@ -70,11 +70,11 @@ class HTTPResponseEncoder:
         return h.encode()
 
     @staticmethod
-    def encode(code, verb, req_id, content=None):
+    def encode(code, content=None):
         if content:
-            header = HTTPResponseEncoder.header(code, verb, req_id, len(content))
+            header = HTTPResponseEncoder.header(code, len(content))
             return header + content.encode()
-        header = HTTPResponseEncoder.header(code, verb, req_id)
+        header = HTTPResponseEncoder.header(code)
         return header
 
 

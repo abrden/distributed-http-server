@@ -5,6 +5,11 @@
 python3 -m front_end_server
 ```
 
+## Logger
+```
+python3 -m logger
+```
+
 ## Back End
 ```
 python3 -m back_end_server
@@ -25,9 +30,13 @@ sudo docker cp distributed-http-server_front_1:fe/audit-log .
 
 ## cURL Examples
 ```
-curl -X GET http://0.0.0.0:5000/netflix/movie/2
-curl -X POST http://0.0.0.0:5000/netflix/movie/2 -d '{"key1":"value1", "key2":"value2"}'
-curl -X PUT http://0.0.0.0:5000/netflix/movie/2 -d '{"hello":"world", "key3":"value3"}'
-curl -X DELETE http://0.0.0.0:5000/netflix/movie/2
+curl -D - -X GET http://0.0.0.0:5000/netflix/movie/2
+curl -D - -X POST http://0.0.0.0:5000/netflix/movie/2 -d '{"key1":"value1", "key2":"value2"}'
+curl -D - -X PUT http://0.0.0.0:5000/netflix/movie/2 -d '{"hello":"world", "key3":"value3"}'
+curl -D - -X DELETE http://0.0.0.0:5000/netflix/movie/2
 ```
 
+## Test
+```
+python3 tests/load_test.py 0.0.0.0 5000 10 50
+```

@@ -2,7 +2,7 @@ from threading import Thread, Lock
 from multiprocessing.dummy import Pool
 import logging
 
-from connectivity.http import HTTPRequestDecoder, HTTPResponseDecoder
+from connectivity.http import HTTPRequestDecoder, HTTPResponseEncoder
 from connectivity.sockets import ServerSocket, LogSenderSocket, ServersClientHTTPSocket
 from .bridge import Bridge, BridgePDUDecoder, BridgePDUEncoder
 from .requests_pending import RequestsPending
@@ -24,14 +24,14 @@ class RequestReceiver:
             return
         logger.debug("Received data from client %r", data)
 
-        verb, path, version, headers, body = HTTPRequestDecoder.decode(data)
+        method, uri, version, headers, content = HTTPRequestDecoder.decode(data)
 
         logger.debug("Adding client %r to RequestsPending", conn)
         req_id = pending.new_request(conn)
         logger.debug("Adding req_id %r to request", req_id)
-        data = BridgePDUEncoder.encode(data, req_id)
+        data = BridgePDUEncoder.encode(method, uri, req_id, content)
         logger.debug("Sending client request through Bridge %r", data)
-        bridge.send_request(path, data)
+        bridge.send_request(uri, data)
         logger.debug("Client request sent through Bridge")
 
 
@@ -83,23 +83,24 @@ class ResponseSenderThread(Thread):
             except OSError:
                 self.logger.debug("Bridge closed remotely. Ending my run")
                 return
+
             self.logger.debug("Received response from BE server %r: %r", self.be_num, response)
-            req_id, data = BridgePDUDecoder.decode(response)
+            status, method, req_id, content = BridgePDUDecoder.decode(response)
+
             self.logger.debug("Getting client for request %r", req_id)
             conn = self.pending.get_client_from_request(req_id)
-            self.logger.debug("Sending data to client %r", data)
+
+            data = HTTPResponseEncoder.encode(status, content)
+            self.logger.debug("Sending response to client %r", data)
             conn.send(data)
-            self.logger.debug("Sent data %r to client", data)
+
             self.pending.request_completed(req_id)
+
             self.logger.debug("Closing connection with client")
             conn.close()
 
             self.logger.debug("Sending log to audit")
-            status, date, method = HTTPResponseDecoder.decode(data)
-            self.logger.debug("date %r", date)
-            self.logger.debug("method %r", method)
-            self.logger.debug("status %r", status)
-            self.logs_conn.send_log(date, conn.address(), method, status)
+            self.logs_conn.send_log("DUMMY DATE", conn.address(), method, str(status))  # TODO fix date and status
 
 
 class LoggerConnection:

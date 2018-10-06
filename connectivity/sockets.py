@@ -45,6 +45,37 @@ class LogSenderSocket:
         self.s.close()
 
 
+class _BridgePDUSocket:
+    def __init__(self, s):
+        self.s = s
+
+    def receive(self):
+        b_size_BPDU = self.s.receive(4)
+        if b_size_BPDU == b'':
+            return b_size_BPDU
+        size_BPDU = unpack("!i", b_size_BPDU)[0]
+        return self.s.receive(size_BPDU)
+
+    def send(self, data):
+        msg = pack("!i", len(data)) + data
+        self.s.send(msg)
+
+    def close(self):
+        self.s.close()
+
+
+class ClientBridgePDUSocket(_BridgePDUSocket):
+    def __init__(self, host, port):
+        self.s = ClientSocket(host, port)
+        super(ClientBridgePDUSocket, self).__init__(self.s)
+
+
+class ServersClientBridgePDUSocket(_BridgePDUSocket):
+    def __init__(self, conn):
+        self.s = ServersClientSocket(conn)
+        super(ServersClientBridgePDUSocket, self).__init__(self.s)
+
+
 class _HTTPSocket:
 
     def __init__(self, s):
