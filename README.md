@@ -39,4 +39,5 @@ curl -D - -X DELETE http://0.0.0.0:5000/netflix/movie/2
 ## Test
 ```
 python3 tests/load_test.py 0.0.0.0 5000 10 50
+python3 tests/load_test.py 0.0.0.0 5000 50 1000
 ```
