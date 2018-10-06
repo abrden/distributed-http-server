@@ -17,7 +17,7 @@ class HTTPRequestDecoder:
 
         return verb, path, version, headers, body
 
-
+### TODO Delete
 class HTTPRequestEncoder:
 
     @staticmethod
@@ -37,7 +37,7 @@ class HTTPResponseDecoder:
         date = splitted[1].split(' ', 1)[1]
         method = splitted[2].split(' ')[1]
         return status, date, method
-
+###
 
 class HTTPResponseEncoder:
     code_as_string = {
@@ -51,7 +51,7 @@ class HTTPResponseEncoder:
     }
 
     @staticmethod
-    def header(code, content_len=None):
+    def _header(code, content_len=None):
         if code in HTTPResponseEncoder.code_as_string:
             h = HTTPResponseEncoder.code_as_string[code]
         else:
@@ -59,8 +59,6 @@ class HTTPResponseEncoder:
 
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
-        #h += 'Request-Type: ' + verb + '\r\n'
-        # h += 'Request-Id: ' + req_id + '\r\n'
         if content_len is not None:
             h += 'Content-Length: ' + str(content_len) + '\r\n'
         h += 'Server: Distributed-HTTP-Server\r\n'
@@ -72,9 +70,9 @@ class HTTPResponseEncoder:
     @staticmethod
     def encode(code, content=None):
         if content:
-            header = HTTPResponseEncoder.header(code, len(content))
+            header = HTTPResponseEncoder._header(code, len(content))
             return header + content.encode()
-        header = HTTPResponseEncoder.header(code)
+        header = HTTPResponseEncoder._header(code)
         return header
 
 

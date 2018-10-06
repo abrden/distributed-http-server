@@ -100,7 +100,7 @@ class ResponseSenderThread(Thread):
             conn.close()
 
             self.logger.debug("Sending log to audit")
-            self.logs_conn.send_log("DUMMY DATE", conn.address(), method, str(status))  # TODO fix date and status
+            self.logs_conn.send_log(conn.address(), method, status)
 
 
 class LoggerConnection:
@@ -111,9 +111,9 @@ class LoggerConnection:
         conn, addr = self.logger_socket.accept_client()
         self.logger_connection = LogSenderSocket(conn)
 
-    def send_log(self, date, addr, method, status):
+    def send_log(self, addr, method, status):
         with self.mutex:
-            self.logger_connection.send(date, addr, method, status)
+            self.logger_connection.send(addr, method, status)
 
     def close(self):
         self.logger_socket.close()
