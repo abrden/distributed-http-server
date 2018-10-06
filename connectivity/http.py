@@ -20,29 +20,26 @@ class HTTPRequestDecoder:
 
 class HTTPResponseEncoder:
     code_as_string = {
-        200: 'HTTP/1.1 200 OK\r\n',
-        201: 'HTTP/1.1 201 Created\r\n',
-        204: 'HTTP/1.1 204 No Content\r\n',
-        400: 'HTTP/1.1 400 Bad Request\r\n',
-        404: 'HTTP/1.1 404 Not Found\r\n',
-        409: 'HTTP/1.1 409 Conflict\r\n',
-        501: 'HTTP/1.1 501 Not Implemented\r\n'
+        200: '200 OK',
+        201: '201 Created',
+        204: '204 No Content',
+        400: '400 Bad Request',
+        404: '404 Not Found',
+        409: '409 Conflict',
+        501: '501 Not Implemented'
     }
 
     @staticmethod
     def _header(code, content_len=None):
-        if code in HTTPResponseEncoder.code_as_string:
-            h = HTTPResponseEncoder.code_as_string[code]
-        else:
+        if code not in HTTPResponseEncoder.code_as_string:
             raise RuntimeError('Un recognized status code')
 
-        current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
-        h += 'Date: ' + current_date + '\r\n'
-        if content_len is not None:
-            h += 'Content-Length: ' + str(content_len) + '\r\n'
-        h += 'Server: Distributed-HTTP-Server\r\n'
-        h += 'Content-Type: application/json\r\n'
-        h += 'Connection: close\r\n\r\n'
+        date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
+        code_str = HTTPResponseEncoder.code_as_string[code]
+        if content_len is None:
+            h = "HTTP/1.1 {}\r\nDate: {}\r\nServer: Distributed-HTTP-Server\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n".format(code_str, date)
+        else:
+            h = "HTTP/1.1 {}\r\nDate: {}\r\nContent-Length: {}\r\nServer: Distributed-HTTP-Server\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n".format(code_str, date, content_len)
 
         return h.encode()
 
