@@ -17,27 +17,6 @@ class HTTPRequestDecoder:
 
         return verb, path, version, headers, body
 
-### TODO Delete
-class HTTPRequestEncoder:
-
-    @staticmethod
-    def encode(host, port, verb, path, body=None):
-        h = "{verb} {path} HTTP/1.1\r\nHost: {host}:{port}\r\n\r\n".format(verb=verb, path=path, host=host, port=port)
-        if body:
-            return (h + body).encode()
-        return h.encode()
-
-
-class HTTPResponseDecoder:
-
-    @staticmethod
-    def decode(data):
-        splitted = data.decode().split('\r\n', 3)
-        status = splitted[0].split(' ', 1)[1]
-        date = splitted[1].split(' ', 1)[1]
-        method = splitted[2].split(' ')[1]
-        return status, date, method
-###
 
 class HTTPResponseEncoder:
     code_as_string = {
@@ -55,7 +34,7 @@ class HTTPResponseEncoder:
         if code in HTTPResponseEncoder.code_as_string:
             h = HTTPResponseEncoder.code_as_string[code]
         else:
-            raise RuntimeError('Un recognized status code')  # TODO specific error
+            raise RuntimeError('Un recognized status code')
 
         current_date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         h += 'Date: ' + current_date + '\r\n'
