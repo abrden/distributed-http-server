@@ -23,9 +23,9 @@ class AuditLogger:
                 self.logger.info("Receiving new log")
                 new_log = conn.receive()
                 if new_log is None:
-                    self.logger.debug("EOF received at the end of log socket")
+                    self.logger.info("EOF received at the end of log socket")
                     break
-                self.logger.info("Decoding new log")
+                self.logger.debug("Decoding new log")
                 addr, method, status = new_log
                 date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
                 self.logger.info("Writing new log")

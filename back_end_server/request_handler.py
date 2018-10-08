@@ -47,10 +47,10 @@ class RequestHandler:
             self.logger.info("Cache MISS: %r", path)
             try:
                 response_content = self.file_handler.fetch_file(path)
-                self.logger.debug("File found: %r", path)
+                self.logger.info("File found: %r", path)
 
             except IOError:
-                self.logger.debug("File not found: %r", path)
+                self.logger.info("File not found: %r", path)
                 return BridgePDUEncoder.encode(404, GET_VERB, req_id, 'File not found\n')
 
             self.cache.load_entry(path, response_content)
@@ -61,7 +61,7 @@ class RequestHandler:
             self.file_handler.create_file(path, body)
 
         except RuntimeError:
-            self.logger.debug("File already exists: %r", path)
+            self.logger.info("File already exists: %r", path)
             return BridgePDUEncoder.encode(409, POST_VERB, req_id, 'A file with that URI already exists\n')
 
         self.cache.load_entry(path, body)
@@ -72,7 +72,7 @@ class RequestHandler:
             self.file_handler.update_file(path, body)
 
         except IOError:
-            self.logger.debug("File not found: %r", path)
+            self.logger.info("File not found: %r", path)
             return BridgePDUEncoder.encode(404, PUT_VERB, req_id, 'File not found\n')
 
         self.cache.load_entry(path, body)
@@ -83,12 +83,12 @@ class RequestHandler:
             self.file_handler.delete_file(path)
 
         except IOError:
-            self.logger.debug("File not found: %r", path)
+            self.logger.info("File not found: %r", path)
             return BridgePDUEncoder.encode(404, DELETE_VERB, req_id, 'File not found\n')
 
         self.cache.delete_entry(path)
         return BridgePDUEncoder.encode(204, DELETE_VERB, req_id)
 
     def _handle_unknown(self, req_id, verb):
-        self.logger.debug("Unknown request method: %r", verb)
+        self.logger.info("Unknown request method: %r", verb)
         return BridgePDUEncoder.encode(501, verb, req_id, 'Unknown request method\n')

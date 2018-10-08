@@ -34,17 +34,17 @@ class Bridge:
 
     def __init__(self, host, port):
         self.logger = logging.getLogger("BE-Bridge")
-        self.logger.debug("Connecting with FE server")
+        self.logger.info("Connecting with FE server")
         self.socket = ClientBridgePDUSocket(host, port)
 
     def receive_request(self):
-        self.logger.debug("Waiting for BridgePDU")
+        self.logger.info("Waiting for Bridge PDU")
         return self.socket.receive()
 
     def answer_request(self, data):
-        self.logger.debug("Sending response %r", data)
+        self.logger.info("Sending Bridge PDU %r", data)
         self.socket.send(data)
 
     def shutdown(self):
-        self.logger.debug("Closing bridge")
+        self.logger.info("Closing bridge")
         self.socket.close()
