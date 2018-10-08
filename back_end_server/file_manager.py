@@ -2,7 +2,7 @@ import logging
 from multiprocessing import Process
 from multiprocessing.dummy import Pool
 
-from connectivity.http import HTTPRequestDecoder
+from .bridge import BridgePDUDecoder
 from concurrency.pipes import PipeRead, PipeWrite
 from .request_handler import RequestHandler
 
@@ -14,8 +14,8 @@ class FileManagerWorker:
         logger = logging.getLogger("FileManagerWorker")
         logger.debug("Working on request %r", req)
 
-        verb, path, version, headers, body = HTTPRequestDecoder.decode(req)
-        res = request_handler.handle(headers['Request-Id'], verb, path, body)
+        method, uri, req_id, content = BridgePDUDecoder.decode(req)
+        res = request_handler.handle(req_id, method, uri, content)
 
         logger.info("Sending response through pipe %r", res)
         response_pipe.send(res)

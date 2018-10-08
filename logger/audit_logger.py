@@ -1,4 +1,5 @@
 import logging
+import time
 
 from connectivity.sockets import LogReceiverSocket
 
@@ -25,7 +26,8 @@ class AuditLogger:
                     self.logger.debug("EOF received at the end of log socket")
                     break
                 self.logger.info("Decoding new log")
-                date, addr, method, status = new_log
+                addr, method, status = new_log
+                date = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
                 self.logger.info("Writing new log")
                 f.write("{date} {addr} {request_method} {status}\r\n".format(date=date,
                                                                              addr=addr,

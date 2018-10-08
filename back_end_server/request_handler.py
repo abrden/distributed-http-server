@@ -3,7 +3,7 @@ from threading import Lock
 
 from .file_handler import FileHandler
 from .cache.ThreadSafeLRUCache import ThreadSafeLRUCache
-from connectivity.http import HTTPResponseEncoder
+from .bridge import BridgePDUEncoder
 
 GET_VERB = 'GET'
 POST_VERB = 'POST'
@@ -22,7 +22,7 @@ class RequestHandler:
     def handle(self, req_id, verb, path, body=None):
         if path == "/":
             self.logger.debug("Empty path: %r", path)
-            return HTTPResponseEncoder.encode(400, verb, req_id, 'URI should be /{origin}/{entity}/{id}\n')
+            return BridgePDUEncoder.encode(400, verb, req_id, 'URI should be /{origin}/{entity}/{id}\n')
 
         if verb == GET_VERB:
             return self._handle_get(req_id, path)
@@ -41,7 +41,7 @@ class RequestHandler:
             self.logger.info("Cache HIT: %r", path)
             cached_response = self.cache.get_entry(path)
             self.mutex.release()
-            return HTTPResponseEncoder.encode(200, GET_VERB, req_id, cached_response)
+            return BridgePDUEncoder.encode(200, GET_VERB, req_id, cached_response)
         else:
             self.mutex.release()
             self.logger.info("Cache MISS: %r", path)
@@ -51,10 +51,10 @@ class RequestHandler:
 
             except IOError:
                 self.logger.debug("File not found: %r", path)
-                return HTTPResponseEncoder.encode(404, GET_VERB, req_id, 'File not found\n')
+                return BridgePDUEncoder.encode(404, GET_VERB, req_id, 'File not found\n')
 
             self.cache.load_entry(path, response_content)
-            return HTTPResponseEncoder.encode(200, GET_VERB, req_id, response_content)
+            return BridgePDUEncoder.encode(200, GET_VERB, req_id, response_content)
 
     def _handle_post(self, req_id, path, body):
         try:
@@ -62,10 +62,10 @@ class RequestHandler:
 
         except RuntimeError:
             self.logger.debug("File already exists: %r", path)
-            return HTTPResponseEncoder.encode(409, POST_VERB, req_id, 'A file with that URI already exists\n')
+            return BridgePDUEncoder.encode(409, POST_VERB, req_id, 'A file with that URI already exists\n')
 
         self.cache.load_entry(path, body)
-        return HTTPResponseEncoder.encode(201, POST_VERB, req_id, 'Created\n')
+        return BridgePDUEncoder.encode(201, POST_VERB, req_id, 'Created\n')
 
     def _handle_put(self, req_id, path, body):
         try:
@@ -73,10 +73,10 @@ class RequestHandler:
 
         except IOError:
             self.logger.debug("File not found: %r", path)
-            return HTTPResponseEncoder.encode(404, PUT_VERB, req_id, 'File not found\n')
+            return BridgePDUEncoder.encode(404, PUT_VERB, req_id, 'File not found\n')
 
         self.cache.load_entry(path, body)
-        return HTTPResponseEncoder.encode(204, PUT_VERB, req_id)
+        return BridgePDUEncoder.encode(204, PUT_VERB, req_id)
 
     def _handle_delete(self, req_id, path):
         try:
@@ -84,11 +84,11 @@ class RequestHandler:
 
         except IOError:
             self.logger.debug("File not found: %r", path)
-            return HTTPResponseEncoder.encode(404, DELETE_VERB, req_id, 'File not found\n')
+            return BridgePDUEncoder.encode(404, DELETE_VERB, req_id, 'File not found\n')
 
         self.cache.delete_entry(path)
-        return HTTPResponseEncoder.encode(204, DELETE_VERB, req_id)
+        return BridgePDUEncoder.encode(204, DELETE_VERB, req_id)
 
     def _handle_unknown(self, req_id, verb):
         self.logger.debug("Unknown request method: %r", verb)
-        return HTTPResponseEncoder.encode(501, verb, req_id, 'Unknown request method\n')
+        return BridgePDUEncoder.encode(501, verb, req_id, 'Unknown request method\n')

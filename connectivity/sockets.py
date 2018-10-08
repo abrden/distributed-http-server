@@ -9,15 +9,15 @@ class LogReceiverSocket:
         self.s = ClientSocket(host, port)
 
     def receive(self):
-        b_sizes = self.s.receive(16)
+        b_sizes = self.s.receive(12)
         if b_sizes == b'':
             return None
-        date_size, addr_size, method_size, status_size = unpack("!iiii", b_sizes)
-        b_data = self.s.receive(date_size + addr_size + method_size + status_size)
+        addr_size, method_size, status = unpack("!iii", b_sizes)
+        b_data = self.s.receive(addr_size + method_size)
         if b_data == b'':
             return None
-        date, addr, method, status = unpack("!{}s{}s{}s{}s".format(date_size, addr_size, method_size, status_size), b_data)
-        return date.decode(), addr.decode(), method.decode(), status.decode()
+        addr, method = unpack("!{}s{}s".format(addr_size, method_size), b_data)
+        return addr.decode(), method.decode(), status
 
     def close(self):
         self.s.close()
@@ -27,22 +27,45 @@ class LogSenderSocket:
     def __init__(self, conn):
         self.s = ServersClientSocket(conn)
 
-    def send(self, date, addr, method, status):
+    def send(self, addr, method, status):
         addr = "{}:{}".format(addr[0], addr[1])
-
-        import logging
-        logger = logging.getLogger('logsender')
-        logger.debug("addr %r", addr)
-        logger.debug("date %r", date)
-        logger.debug("method %r", method)
-        logger.debug("status %r", status)
-
-        msg = pack("!iiii{}s{}s{}s{}s".format(len(date), len(addr), len(method), len(status)),
-                   len(date), len(addr), len(method), len(status), date.encode(), addr.encode(), method.encode(), status.encode())
+        msg = pack("!iii{}s{}s".format(len(addr), len(method)),
+                   len(addr), len(method), status, addr.encode(), method.encode())
         self.s.send(msg)
 
     def close(self):
         self.s.close()
+
+
+class _BridgePDUSocket:
+    def __init__(self, s):
+        self.s = s
+
+    def receive(self):
+        b_size_BPDU = self.s.receive(4)
+        if b_size_BPDU == b'':
+            return b_size_BPDU
+        size_BPDU = unpack("!i", b_size_BPDU)[0]
+        return self.s.receive(size_BPDU)
+
+    def send(self, data):
+        msg = pack("!i", len(data)) + data
+        self.s.send(msg)
+
+    def close(self):
+        self.s.close()
+
+
+class ClientBridgePDUSocket(_BridgePDUSocket):
+    def __init__(self, host, port):
+        self.s = ClientSocket(host, port)
+        super(ClientBridgePDUSocket, self).__init__(self.s)
+
+
+class ServersClientBridgePDUSocket(_BridgePDUSocket):
+    def __init__(self, conn):
+        self.s = ServersClientSocket(conn)
+        super(ServersClientBridgePDUSocket, self).__init__(self.s)
 
 
 class _HTTPSocket:
