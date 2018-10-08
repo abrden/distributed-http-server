@@ -3,6 +3,7 @@ import sys
 import os
 import random
 import logging
+import time
 
 from request import get, post, put, delete
 
@@ -42,12 +43,16 @@ def make_requests(host, port, reqs):
         if method == 'POST' or method == 'PUT':
             content = generate_random_content()
             logger.debug("Making %r request with URI %r and content %r", method, uri, content)
+            ti = time.time()
             res = f('http://' + host + ':' + str(port) + uri, content)
-            logger.info("Made %r request with URI %r and content %r - Got response code %r", method, uri, content, res.status_code)
+            tf = time.time()
+            logger.info("Made %r request with URI %r and content %r - Got response code %r in %r secs", method, uri, content, res.status_code, tf - ti)
         else:
             logger.debug("Making %r request with URI %r", method, uri)
+            ti = time.time()
             res = f('http://' + host + ':' + str(port) + uri)
-            logger.info("Made %r request with URI %r - Got response code %r", method, uri, res.status_code)
+            tf = time.time()
+            logger.info("Made %r request with URI %r - Got response code %r in %r secs", method, uri, res.status_code, tf - ti)
 
 
 def load_test(host, port, n_procs, m_reqs):
