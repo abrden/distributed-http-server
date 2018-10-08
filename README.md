@@ -25,7 +25,7 @@ Don't forget to change BE_NUM on the docker-compose.yml to match the number on t
 
 #### Copy audit log out from docker container
 ```
-sudo docker cp distributed-http-server_front_1:fe/audit-log .
+sudo docker cp distributed-http-server_logger_1:logger/audit-log .
 ```
 
 ## cURL Examples

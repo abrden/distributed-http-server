@@ -12,7 +12,7 @@ class FileManagerWorker:
     @staticmethod
     def work(response_pipe, request_handler, req):
         logger = logging.getLogger("FileManagerWorker")
-        logger.debug("Working on request %r", req)
+        logger.info("Working on request %r", req)
 
         method, uri, req_id, content = BridgePDUDecoder.decode(req)
         res = request_handler.handle(req_id, method, uri, content)
@@ -50,9 +50,9 @@ class FileManager(Process):
             self.logger.info("Adding request to workers pool")
             pool.apply_async(FileManagerWorker.work, (self.response_pipe, self.request_handler, req))
 
-        self.logger.debug("Closing workers pool")
+        self.logger.info("Closing workers pool")
         pool.close()
-        self.logger.debug("Joining workers pool")
+        self.logger.info("Joining workers pool")
         pool.join()
         self.shutdown()
 

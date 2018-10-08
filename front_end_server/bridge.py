@@ -23,20 +23,12 @@ class BridgePDUEncoder:
 
     @staticmethod
     def encode(method, uri, req_id, content=None):
-        import logging
-        logger = logging.getLogger('lala')
-        logger.debug("me %r", method)
-        logger.debug("uri %r", uri)
-        logger.debug("rid %r", req_id)
-        logger.debug("con %r", content)
-
         if content is not None:
             msg = pack("!iiii{}s{}s{}s{}s".format(len(method), len(uri), len(req_id), len(content)),
                        len(method), len(uri), len(req_id), len(content), method.encode(), uri.encode(), req_id.encode(), content.encode())
         else:
             msg = pack("!iiii{}s{}s{}s".format(len(method), len(uri), len(req_id)),
                        len(method), len(uri), len(req_id), 0, method.encode(), uri.encode(), req_id.encode())
-        logger.debug("msg %r", msg)
         return msg
 
 
@@ -52,11 +44,11 @@ class Bridge:
         self.be_conn_locks = []
         self.hasher = pyhash.super_fast_hash()
 
-        self.logger.debug("Connecting with BE servers")
+        self.logger.info("Connecting with BE servers")
         connections = []
         for i in range(self.servers):
             conn, addr = self.socket.accept_client()
-            self.logger.debug("Connection accepted %r" % (addr,))
+            self.logger.info("Connection accepted %r" % (addr,))
             connections.append((addr, conn))
 
         connections.sort()
@@ -70,25 +62,25 @@ class Bridge:
 
     def send_request(self, path, data):
         be_num = self.where_to(path)
-        self.logger.debug("Sending request %r to %r", data, be_num)
+        self.logger.debug("Sending request %r to BE %r", data, be_num)
         conn = self.be_conn[be_num]
 
         with self.be_conn_locks[be_num][0]:
-            self.logger.debug("Sending request to %r", be_num)
+            self.logger.info("Sending request to BE %r", be_num)
             conn.send(data)
-            self.logger.debug("Request sent to %r", be_num)
+            self.logger.debug("Request sent to BE %r", be_num)
 
     def wait_for_response(self, be_num):
-        self.logger.debug("Waiting for %r response", be_num)
+        self.logger.debug("Waiting for BE %r response", be_num)
         conn = self.be_conn[be_num]
         with self.be_conn_locks[be_num][1]:
             content = conn.receive()
 
-        self.logger.debug("Received %r response from %r", content, be_num)
+        self.logger.info("Received %r response from BE %r", content, be_num)
         return content
 
     def shutdown(self):
-        self.logger.debug("Closing bridge")
+        self.logger.info("Closing bridge")
         self.socket.close()
         for conn in self.be_conn:
             conn.close()
