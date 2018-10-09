@@ -56,7 +56,7 @@ class HTTPServer:
 
     def shutdown(self):
         self.logger.debug("Closing client socket")
-        self.socket.info()
+        self.socket.close()
 
         self.logger.info("Closing receivers pool")
         self.receivers_pool.close()
